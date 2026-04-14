@@ -1,0 +1,11 @@
+Flask
+google-genai
+openai
+anthropic
+jinja2
+pyyaml
+python-dotenv
+pydantic
+reportlab
+pypdf
+python-docx

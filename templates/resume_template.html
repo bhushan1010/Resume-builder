@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page {
+    size: A4;
+    margin: 14mm 14mm 14mm 14mm;
+  }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 9.5pt;
+    color: #111;
+    line-height: 1.4;
+  }
+
+  /* ── Header ── */
+  .header { text-align: center; margin-bottom: 8px; }
+  .header h1 { font-size: 20pt; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+  .contact { font-size: 8.5pt; color: #333; margin-top: 3px; }
+  .contact a { color: #111; text-decoration: none; }
+  .contact span { margin: 0 4px; color: #aaa; }
+
+  /* ── Section ── */
+  .section { margin-top: 10px; }
+  .section-title {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid #111;
+    padding-bottom: 2px;
+    margin-bottom: 6px;
+  }
+
+  /* ── Experience / Education ── */
+  .entry { margin-bottom: 7px; }
+  .entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .entry-title { font-weight: 700; font-size: 9.5pt; }
+  .entry-date  { font-size: 8.5pt; color: #555; white-space: nowrap; }
+  .entry-sub {
+    display: flex;
+    justify-content: space-between;
+    font-style: italic;
+    font-size: 8.5pt;
+    color: #444;
+    margin-bottom: 3px;
+  }
+  .entry ul { margin-left: 14px; }
+  .entry ul li { margin-bottom: 1.5px; font-size: 9pt; }
+
+  /* ── Projects ── */
+  .project-name { font-weight: 700; }
+  .project-tech { font-style: italic; font-weight: 400; color: #444; }
+
+  /* ── Skills ── */
+  .skills-table { width: 100%; border-collapse: collapse; }
+  .skills-table td { padding: 1.5px 0; vertical-align: top; font-size: 9pt; }
+  .skills-table .label { font-weight: 700; width: 110px; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>{{ basics.name }}</h1>
+  <div class="contact">
+    {{ basics.phone }}
+    <span>|</span>
+    <a href="mailto:{{ basics.email }}">{{ basics.email }}</a>
+    <span>|</span>
+    <a href="https://{{ basics.linkedin }}">{{ basics.linkedin }}</a>
+    <span>|</span>
+    <a href="https://{{ basics.github }}">{{ basics.github }}</a>
+    {% if basics.leetcode %}
+    <span>|</span>
+    <a href="https://{{ basics.leetcode }}">{{ basics.leetcode }}</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Education -->
+<div class="section">
+  <div class="section-title">Education</div>
+  {% for edu in education %}
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">{{ edu.institution }}</span>
+      <span class="entry-date">{{ edu.startDate }} – {{ edu.endDate }}</span>
+    </div>
+    <div class="entry-sub">
+      <span>{{ edu.degree }}</span>
+      <span>{{ edu.location }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Experience -->
+<div class="section">
+  <div class="section-title">Professional Experience</div>
+  {% for exp in experience %}
+  <div class="entry">
+    <div class="entry-header">
+      <span class="entry-title">{{ exp.role }}</span>
+      <span class="entry-date">{{ exp.startDate }} – {{ exp.endDate }}</span>
+    </div>
+    <div class="entry-sub">
+      <span>{{ exp.company }}</span>
+      <span>{{ exp.location }}</span>
+    </div>
+    <ul>
+      {% for bullet in exp.bullets %}
+      <li>{{ bullet }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Projects -->
+<div class="section">
+  <div class="section-title">Projects</div>
+  {% for proj in projects %}
+  <div class="entry">
+    <div class="entry-header">
+      <span><span class="project-name">{{ proj.name }}</span>
+      <span class="project-tech"> | {{ proj.technologies | join(', ') }}</span></span>
+    </div>
+    <ul>
+      {% for bullet in proj.bullets %}
+      <li>{{ bullet }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Technical Skills -->
+<div class="section">
+  <div class="section-title">Technical Skills</div>
+  <table class="skills-table">
+    <tr>
+      <td class="label">Languages</td>
+      <td>{{ skills.languages | join(', ') }}</td>
+    </tr>
+    <tr>
+      <td class="label">Frameworks</td>
+      <td>{{ skills.frameworks | join(', ') }}</td>
+    </tr>
+    <tr>
+      <td class="label">Tools &amp; Platforms</td>
+      <td>{{ skills.tools | join(', ') }}</td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

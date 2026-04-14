@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ATS Pro — AI Resume Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.2.2/anime.min.js"></script>
+<style>
+:root {
+  --bg:       #08090f;
+  --bg2:      #0e0f1a;
+  --bg3:      #14162a;
+  --bg4:      #1a1d35;
+  --border:   rgba(120,100,255,0.10);
+  --border2:  rgba(120,100,255,0.22);
+  --text:     #eeeaf8;
+  --muted:    #6b6885;
+  --hint:     #2e2c45;
+
+  --accent:   #7c5cff;
+  --accent2:  #a88bff;
+  --accent-dim: rgba(124,92,255,0.10);
+
+  --gold:     #f0b429;
+  --gold-dim: rgba(240,180,41,0.10);
+
+  --pink:     #e83e8c;
+  --teal:     #2dd4bf;
+
+  --gradient-accent: linear-gradient(90deg, transparent, #7c5cff, transparent);
+
+  --serif: 'DM Serif Display', Georgia, serif;
+  --mono:  'DM Mono', monospace;
+  --sans:  'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--mono); cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: var(--sans); color: var(--text); background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 14px; width: 100%; outline: none; transition: border-color 0.2s; }
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b6885' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(8,9,15,0.75);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 14px; font-weight: 500;
+}
+.nav-logo-icon {
+  width: 28px; height: 28px; border: 1.5px solid var(--accent); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--accent); font-weight: 500;
+}
+.nav-links { display: flex; gap: 28px; }
+.nav-links a {
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  transition: color 0.2s; letter-spacing: 0.02em;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-actions { display: flex; gap: 12px; align-items: center; }
+.nav-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--teal);
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(45,212,191,0.08); border: 1px solid rgba(45,212,191,0.15);
+}
+.nav-status .status-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.btn-ghost {
+  font-family: var(--mono); font-size: 12px; padding: 8px 16px; border-radius: 6px;
+  border: 1px solid var(--border2); color: var(--muted); transition: all 0.2s;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--text); }
+.btn-filled {
+  font-family: var(--mono); font-size: 12px; padding: 8px 18px; border-radius: 6px;
+  background: var(--accent); color: #fff; font-weight: 500; transition: all 0.2s;
+}
+.btn-filled:hover { background: var(--accent2); }
+
+/* Hamburger */
+.hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+.hamburger span { display: block; width: 22px; height: 1.5px; background: var(--text); transition: all 0.3s; }
+.mobile-menu {
+  display: none; position: fixed; inset: 0; z-index: 99;
+  background: var(--bg); flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a { font-family: var(--serif); font-size: 32px; color: var(--text); }
+.mobile-close { position: absolute; top: 16px; right: 24px; font-size: 28px; color: var(--text); cursor: pointer; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 80px 24px 60px; position: relative; overflow: hidden;
+}
+#bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.3; }
+.hero > * { position: relative; z-index: 1; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  background: var(--accent-dim); border: 1px solid var(--border);
+  padding: 6px 16px; border-radius: 999px; margin-bottom: 32px;
+  opacity: 0; transform: translateY(8px);
+}
+.hero-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(44px, 7vw, 88px);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.hero h1 em { font-style: italic; color: var(--gold); }
+.hero h1 .char { display: inline-block; transform: translateY(110%); }
+
+.hero-sub {
+  font-size: 18px; color: var(--muted); max-width: 540px; margin: 0 auto 40px;
+  opacity: 0; transform: translateY(16px);
+}
+
+.hero-ctas {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  opacity: 0; transform: translateY(16px);
+}
+.btn-hero {
+  font-family: var(--mono); font-size: 13px; padding: 14px 32px; border-radius: 8px;
+  font-weight: 500; transition: transform 0.2s;
+}
+.btn-hero:hover { transform: scale(1.04); }
+.btn-hero.primary { background: var(--accent); color: #fff; }
+.btn-hero.secondary { border: 1px solid var(--border2); color: var(--text); }
+
+.hero-stats {
+  display: flex; gap: 48px; margin-top: 64px; flex-wrap: wrap; justify-content: center;
+}
+.hero-stat { text-align: center; }
+.hero-stat .num {
+  font-family: var(--serif); font-size: 36px; color: var(--gold);
+}
+.hero-stat .label {
+  font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px;
+}
+
+/* Floating code snippets */
+.floating-code {
+  position: absolute; font-family: var(--mono); font-size: 11px; color: var(--accent);
+  opacity: 0; pointer-events: none; white-space: pre; line-height: 1.5;
+}
+.floating-code .kw { color: var(--accent2); }
+.floating-code .str { color: var(--gold); }
+.floating-code .fn { color: var(--teal); }
+
+/* ── SECTION COMMON ── */
+section { padding: 120px 5%; }
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--accent); margin-bottom: 12px;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(30px, 4vw, 52px);
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.section-sub { color: var(--muted); max-width: 560px; font-size: 16px; }
+
+/* ── HOW IT WORKS ── */
+.how { background: var(--bg2); }
+.how-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  margin-top: 64px; background: var(--border); border: 1px solid var(--border);
+}
+.how-cell {
+  background: var(--bg2); padding: 48px 40px;
+  opacity: 0; transform: translateY(30px);
+}
+.how-num { font-family: var(--serif); font-size: 56px; color: var(--hint); margin-bottom: 16px; }
+.how-icon {
+  width: 40px; height: 40px; border-radius: 8px; background: var(--accent-dim);
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 20px;
+}
+.how-cell h3 { font-family: var(--serif); font-size: 22px; margin-bottom: 12px; }
+.how-cell p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+/* ── ENGINE ── */
+.engine { background: var(--bg); }
+.engine-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; margin-top: 64px; }
+.engine-left { position: sticky; top: 80px; align-self: start; }
+.engine-features { list-style: none; margin-bottom: 32px; }
+.engine-features li {
+  display: flex; align-items: center; gap: 12px; padding: 12px 0;
+  font-size: 14px; color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.engine-features li .check {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--accent-dim);
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--accent); flex-shrink: 0;
+}
+
+/* Code preview */
+.code-preview {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.code-bar {
+  height: 2px; background: var(--gradient-accent);
+}
+.code-dots { display: flex; gap: 6px; padding: 12px 16px; }
+.code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+.code-dots span:nth-child(1) { background: #ff5f57; }
+.code-dots span:nth-child(2) { background: #febc2e; }
+.code-dots span:nth-child(3) { background: #28c840; }
+.code-body {
+  padding: 0 16px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  color: var(--muted); overflow-x: auto;
+}
+.code-body .kw { color: var(--accent2); }
+.code-body .str { color: var(--gold); }
+.code-body .fn { color: var(--teal); }
+.code-body .cm { color: var(--hint); }
+
+/* Engine form */
+.engine-form { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 32px; }
+
+/* Template gallery */
+.template-gallery { margin: 32px 0; }
+.template-gallery h4 {
+  font-family: var(--mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); margin-bottom: 12px;
+}
+.template-cards { display: flex; gap: 12px; }
+.template-card {
+  flex: 1; background: var(--bg2); border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+}
+.template-card:hover { border-color: var(--border2); }
+.template-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+.template-card .t-preview {
+  height: 120px; background: var(--bg); border-radius: 4px; margin-bottom: 8px;
+  padding: 8px; position: relative; overflow: hidden;
+}
+.template-card .t-name {
+  font-family: var(--serif); font-size: 12px; color: var(--text); margin-bottom: 2px;
+}
+.template-card .t-desc {
+  font-size: 10px; color: var(--muted); line-height: 1.4;
+}
+.template-card .t-badge {
+  position: absolute; top: 6px; right: 6px; font-family: var(--mono); font-size: 8px;
+  padding: 2px 6px; border-radius: 3px; background: var(--gold-dim); color: var(--gold);
+}
+
+/* Template preview mini-mockups */
+.t-preview .mock-name {
+  height: 6px; width: 60%; border-radius: 2px; margin-bottom: 4px;
+}
+.t-preview .mock-line {
+  height: 3px; width: 80%; border-radius: 1px; margin-bottom: 3px; opacity: 0.4;
+}
+.t-preview .mock-section {
+  height: 4px; width: 40%; border-radius: 1px; margin: 6px 0 3px;
+}
+.t-preview .mock-bullet {
+  height: 2px; width: 70%; border-radius: 1px; margin-bottom: 2px; opacity: 0.3;
+}
+
+/* Jake's template preview */
+.t-jakes .mock-name { background: var(--accent); }
+.t-jakes .mock-line { background: var(--muted); }
+.t-jakes .mock-section { background: var(--text); }
+.t-jakes .mock-section::after {
+  content: ''; display: block; height: 1px; width: 100%;
+  background: var(--accent); margin-top: 2px;
+}
+.t-jakes .mock-bullet { background: var(--muted); }
+.t-jakes .mock-bullet::before {
+  content: ''; display: inline-block; width: 4px; height: 4px;
+  border-radius: 50%; background: var(--accent); margin-right: 4px; vertical-align: middle;
+}
+
+/* Classic template preview */
+.t-classic .mock-name { background: var(--text); height: 7px; }
+.t-classic .mock-line { background: var(--muted); }
+.t-classic .mock-section { background: var(--text); height: 5px; }
+.t-classic .mock-section::after {
+  content: ''; display: block; height: 1px; width: 100%;
+  background: var(--text); margin-top: 2px;
+}
+.t-classic .mock-bullet { background: var(--muted); }
+
+/* Modern template preview */
+.t-modern .mock-name { background: var(--accent); }
+.t-modern .mock-line { background: var(--muted); }
+.t-modern .mock-section { background: var(--accent); color: #fff; }
+.t-modern .mock-bullet { background: var(--muted); }
+
+/* Before/After comparison */
+.before-after {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin-top: 16px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.ba-panel { padding: 16px; }
+.ba-panel.before { background: rgba(232,62,140,0.05); }
+.ba-panel.after { background: rgba(45,212,191,0.05); }
+.ba-label {
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 8px;
+}
+.ba-panel.before .ba-label { color: var(--pink); }
+.ba-panel.after .ba-label { color: var(--teal); }
+.ba-text { font-size: 11px; line-height: 1.6; color: var(--muted); }
+.ba-text strong { color: var(--text); }
+.ba-text .highlight { color: var(--teal); font-weight: 500; }
+.ba-text .weak { color: var(--pink); opacity: 0.7; }
+.ba-divider {
+  width: 1px; background: var(--border); display: flex; align-items: center; justify-content: center;
+}
+.ba-divider span {
+  font-family: var(--mono); font-size: 10px; color: var(--accent);
+  background: var(--bg2); padding: 4px 8px; border-radius: 4px;
+}
+
+/* API key security badge */
+.api-key-field { position: relative; }
+.security-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--mono); font-size: 10px; color: var(--teal);
+  margin-top: 6px;
+}
+.security-badge svg { width: 12px; height: 12px; }
+
+/* Result area */
+#result-area { animation: fadeInUp 0.4s ease-out; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.step-tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+.step-tab {
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px;
+  font-family: var(--mono); font-size: 12px; color: var(--muted); transition: all 0.2s; cursor: pointer;
+}
+.step-tab.active { color: var(--text); }
+.step-tab .step-num {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.2s;
+}
+.step-tab.active .step-num { background: var(--accent); border-color: var(--accent); color: #fff; }
+.step-tab.done .step-num { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.f-card { display: none; }
+.f-card.active { display: block; }
+.f-card label { display: block; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+.f-card .field { margin-bottom: 20px; }
+.f-card .checklist { list-style: none; margin-top: 16px; }
+.f-card .checklist li {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 13px; color: var(--muted);
+}
+.f-card .checklist .cmark { opacity: 0; color: var(--accent); font-size: 14px; }
+
+.upload-zone {
+  border: 1.5px dashed var(--border2); border-radius: 8px; padding: 24px;
+  text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; transition: all 0.2s;
+}
+.upload-zone:hover { border-color: var(--accent); color: var(--text); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.btn-generate {
+  width: 100%; padding: 14px; border-radius: 8px; background: var(--accent);
+  color: #fff; font-family: var(--mono); font-size: 13px; font-weight: 500;
+  position: relative; overflow: hidden; transition: background 0.2s;
+}
+.btn-generate:hover { background: var(--accent2); }
+.btn-generate:disabled { opacity: 0.6; cursor: not-allowed; }
+.progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px; background: var(--gold);
+  width: 0; transition: width 0.3s;
+}
+
+/* ── FEATURES ── */
+.features { background: var(--bg2); }
+.feat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 64px;
+}
+.feat-cell {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+  padding: 32px; opacity: 0; transform: scale(0.96); transition: border-color 0.2s;
+}
+.feat-cell:hover { border-color: var(--border2); }
+.feat-cell .icon { font-size: 24px; margin-bottom: 16px; }
+.feat-cell h3 { font-family: var(--serif); font-size: 18px; margin-bottom: 8px; }
+.feat-cell p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── ANIMATION DEMO ── */
+.demo { background: var(--bg); }
+.demo-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 64px; align-items: start; }
+.demo-canvas-wrap {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.demo-canvas-wrap canvas { width: 100%; height: 340px; display: block; }
+.demo-controls { display: flex; flex-direction: column; gap: 12px; }
+.demo-btn {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg3);
+  transition: all 0.2s; cursor: pointer; text-align: left;
+}
+.demo-btn:hover { border-color: var(--border2); background: var(--bg4); }
+.demo-btn.active { border-color: var(--accent); background: var(--accent-dim); }
+.demo-btn .d-icon { font-size: 20px; }
+.demo-btn h4 { font-family: var(--serif); font-size: 16px; margin-bottom: 2px; }
+.demo-btn p { font-size: 12px; color: var(--muted); }
+
+/* ── TESTIMONIALS ── */
+.testi { background: var(--bg2); }
+.testi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 64px; }
+.testi-card {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+  padding: 32px; opacity: 0; transform: translateY(20px);
+}
+.testi-card .qmark { font-family: var(--serif); font-size: 40px; color: var(--accent); line-height: 1; margin-bottom: 12px; }
+.testi-card blockquote { font-size: 14px; line-height: 1.7; color: var(--muted); margin-bottom: 20px; }
+.testi-author { display: flex; align-items: center; gap: 12px; }
+.testi-avatar {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent-dim);
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.testi-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.testi-role { font-size: 11px; color: var(--muted); }
+
+/* ── PRICING ── */
+.pricing { background: var(--bg); }
+.pricing-grid { display: flex; gap: 16px; max-width: 720px; margin: 64px auto 0; }
+.plan-card {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+  padding: 40px 32px;
+}
+.plan-card.pro { border-color: var(--accent); position: relative; }
+.plan-badge {
+  display: inline-block; font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 4px 10px; border-radius: 4px; margin-bottom: 16px;
+}
+.plan-badge.popular { background: var(--gold-dim); color: var(--gold); }
+.plan-price { font-family: var(--serif); font-size: 44px; margin-bottom: 24px; }
+.plan-features { list-style: none; margin-bottom: 32px; }
+.plan-features li {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; color: var(--muted);
+}
+.plan-features li .ck { color: var(--accent); }
+.btn-plan {
+  width: 100%; padding: 12px; border-radius: 8px; font-family: var(--mono); font-size: 12px;
+  font-weight: 500; transition: all 0.2s;
+}
+.btn-plan.outline { border: 1px solid var(--border2); color: var(--text); }
+.btn-plan.outline:hover { border-color: var(--text); }
+.btn-plan.filled { background: var(--accent); color: #fff; }
+.btn-plan.filled:hover { background: var(--accent2); }
+
+/* ── CTA BANNER ── */
+.cta-banner { text-align: center; padding: 120px 5%; background: var(--bg); }
+.cta-banner h2 { font-family: var(--serif); font-size: clamp(30px, 4vw, 52px); margin-bottom: 16px; }
+.cta-banner p { color: var(--muted); margin-bottom: 40px; }
+.cta-banner .hero-ctas { opacity: 1; transform: none; }
+
+/* ── FOOTER ── */
+.footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 32px 5%; border-top: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; color: var(--hint);
+}
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { color: var(--hint); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .engine-layout { grid-template-columns: 1fr; }
+  .engine-left { position: static; }
+}
+@media (max-width: 900px) {
+  .how-grid, .feat-grid, .testi-grid { grid-template-columns: 1fr; }
+  .demo-layout { grid-template-columns: 1fr; }
+  .pricing-grid { flex-direction: column; max-width: 400px; }
+  .template-cards { flex-direction: column; }
+  .before-after { grid-template-columns: 1fr; }
+  .ba-divider { display: none; }
+}
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .hero { padding: 100px 5% 60px; }
+  .hero-stats { gap: 32px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  section { padding: 80px 5%; }
+}
+@media (max-width: 480px) {
+  .hero h1 { font-size: clamp(36px, 8vw, 48px); }
+  section { padding: 64px 5%; }
+  .hero-stat .num { font-size: 28px; }
+  .floating-code { display: none; }
+  .step-tab span:not(.step-num) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="#" class="nav-logo">
+    <span class="nav-logo-icon">ATS</span>
+    ATS Pro
+  </a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#engine">Engine</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <div class="nav-actions">
+    <div class="nav-status">
+      <span class="status-dot"></span>
+      Engine: Operational
+    </div>
+    <a href="/login" class="btn-ghost">Sign in</a>
+    <a href="#engine" class="btn-filled">Start free</a>
+  </div>
+  <div class="hamburger" id="hamburger" onclick="document.getElementById('mobile-menu').classList.add('open')">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-close" onclick="this.parentElement.classList.remove('open')">&times;</div>
+  <a href="#how" onclick="this.parentElement.classList.remove('open')">How it works</a>
+  <a href="#engine" onclick="this.parentElement.classList.remove('open')">Engine</a>
+  <a href="#features" onclick="this.parentElement.classList.remove('open')">Features</a>
+  <a href="#pricing" onclick="this.parentElement.classList.remove('open')">Pricing</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="floating-code" style="top:15%;left:5%;">
+<span class="kw">const</span> resume = <span class="fn">tailor</span>({
+  company: <span class="str">"Google"</span>,
+  template: <span class="str">"jakes"</span>
+});
+  </div>
+  <div class="floating-code" style="top:25%;right:6%;">
+<span class="fn">analyze</span>(jd, profile)
+  <span class="cm">// → ATS: 94/100</span>
+  </div>
+  <div class="floating-code" style="bottom:20%;left:8%;">
+<span class="kw">await</span> <span class="fn">export</span>(<span class="str">"pdf"</span>)
+  <span class="cm">// ✓ tailored_resume.pdf</span>
+  </div>
+
+  <div class="hero-badge">
+    <span class="dot"></span>
+    anime.js powered · AI-driven · ATS optimized
+  </div>
+
+  <h1 id="hero-title">Tailor your resume<br>to <em>any role,</em> instantly</h1>
+
+  <p class="hero-sub">Optimize your application for Applicant Tracking Systems. Tailor your professional narrative to any role with AI-driven precision.</p>
+
+  <div class="hero-ctas">
+    <a href="#engine" class="btn-hero primary">Start tailoring now</a>
+    <a href="#demo" class="btn-hero secondary">See live demo</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num" data-target="94" data-suffix="%">0</div><div class="label">ATS Pass Rate</div></div>
+    <div class="hero-stat"><div class="num" data-target="3" data-suffix="x">0</div><div class="label">More Callbacks</div></div>
+    <div class="hero-stat"><div class="num" data-target="30" data-prefix="<" data-suffix="s">0</div><div class="label">To Generate</div></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="eyebrow">How it works</div>
+  <h2 class="section-title">Three steps to your<br>tailored resume</h2>
+  <div class="how-grid">
+    <div class="how-cell" data-reveal>
+      <div class="how-num">01</div>
+      <div class="how-icon">🔐</div>
+      <h3>Security-First API Setup</h3>
+      <p>Enter your AI provider key — it stays in your browser session only. We never store, log, or transmit it to any database. Your key, your control.</p>
+    </div>
+    <div class="how-cell" data-reveal>
+      <div class="how-num">02</div>
+      <div class="how-icon">📄</div>
+      <h3>Upload your profile</h3>
+      <p>Use the built-in template or upload your own YAML. Our engine parses your experience, skills, and projects.</p>
+    </div>
+    <div class="how-cell" data-reveal>
+      <div class="how-num">03</div>
+      <div class="how-icon">🎯</div>
+      <h3>Paste the job description</h3>
+      <p>AI rewrites your bullets, filters skills, and generates JD-relevant projects. Download a polished PDF in seconds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ENGINE -->
+<section class="engine" id="engine">
+  <div class="eyebrow">Resume Engine</div>
+  <h2 class="section-title">Configure your<br>target role</h2>
+  <p class="section-sub">Configure your AI parameters and let the engine do the heavy lifting.</p>
+
+  <div class="engine-layout">
+    <div class="engine-left">
+      <ul class="engine-features">
+        <li><span class="check">✓</span> Semantic ATS keyword matching</li>
+        <li><span class="check">✓</span> AI-rewritten experience bullets</li>
+        <li><span class="check">✓</span> JD-relevant project generation</li>
+        <li><span class="check">✓</span> 3 template styles</li>
+        <li><span class="check">✓</span> Multi-page support</li>
+        <li><span class="check">✓</span> ATS score analytics</li>
+      </ul>
+
+      <!-- Template Gallery -->
+      <div class="template-gallery">
+        <h4>Template Styles</h4>
+        <div class="template-cards">
+          <div class="template-card selected" data-template="jakes">
+            <div class="t-preview t-jakes">
+              <div class="mock-name"></div>
+              <div class="mock-line" style="width:50%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet"></div>
+              <div class="mock-bullet" style="width:60%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet" style="width:75%"></div>
+            </div>
+            <div class="t-name">Jake's Resume</div>
+            <div class="t-desc">The gold standard for SWE — thin rules, compact spacing</div>
+            <span class="t-badge">Popular</span>
+          </div>
+          <div class="template-card" data-template="classic">
+            <div class="t-preview t-classic">
+              <div class="mock-name"></div>
+              <div class="mock-line" style="width:45%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet"></div>
+              <div class="mock-bullet" style="width:65%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet" style="width:70%"></div>
+            </div>
+            <div class="t-name">Classic Minimal</div>
+            <div class="t-desc">Executive style — plain text, no accent colors</div>
+          </div>
+          <div class="template-card" data-template="modern">
+            <div class="t-preview t-modern">
+              <div class="mock-name"></div>
+              <div class="mock-line" style="width:55%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet"></div>
+              <div class="mock-bullet" style="width:58%"></div>
+              <div class="mock-section"></div>
+              <div class="mock-bullet" style="width:80%"></div>
+            </div>
+            <div class="t-name">Modern Accent</div>
+            <div class="t-desc">Creative/Startup style — bold accent bars</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Before/After Comparison -->
+      <div class="code-preview" style="margin-top:24px;">
+        <div class="code-bar"></div>
+        <div class="code-dots"><span></span><span></span><span></span></div>
+        <div style="padding:12px 16px 0;">
+          <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:8px;">ATS Optimization: Before vs After</div>
+        </div>
+        <div class="before-after" style="margin:0 8px 12px;border:none;">
+          <div class="ba-panel before">
+            <div class="ba-label">Before</div>
+            <div class="ba-text">
+              <span class="weak">"Responsible for managing projects and coordinating with teams to deliver on time."</span>
+            </div>
+          </div>
+          <div class="ba-divider"><span>→</span></div>
+          <div class="ba-panel after">
+            <div class="ba-label">After (AI-Tailored)</div>
+            <div class="ba-text">
+              <span class="highlight">"Led cross-functional Agile teams</span> to deliver <span class="highlight">AI-adjacent cybersecurity projects</span>, producing executive-level risk assessments and <span class="highlight">sprint metrics for C-suite stakeholders.</span>"
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 16px 12px;">
+          <div style="font-size:10px;color:var(--hint);line-height:1.5;">Our engine goes beyond keyword matching — it understands <span style="color:var(--teal);">intent, domain context, and impact framing</span> to rewrite your experience in the language of the target role.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="engine-form" id="resume-form">
+      <div class="step-tabs">
+        <div class="step-tab active" data-step="0"><span class="step-num">1</span><span>Connect API</span></div>
+        <div class="step-tab" data-step="1"><span class="step-num">2</span><span>Profile</span></div>
+        <div class="step-tab" data-step="2"><span class="step-num">3</span><span>Job Details</span></div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="f-card active" data-fcard="0">
+        <div class="field">
+          <label>AI Backend</label>
+          <select id="backend">
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic Claude</option>
+          </select>
+        </div>
+        <div class="field api-key-field">
+          <label>API Key</label>
+          <input type="password" id="api-key" placeholder="Enter your API key" />
+          <div class="security-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Encrypted in session &middot; Never stored
+          </div>
+        </div>
+        <ul class="checklist" id="checklist">
+          <li><span class="cmark">✓</span> Key stays in your session only</li>
+          <li><span class="cmark">✓</span> Never stored on our servers</li>
+          <li><span class="cmark">✓</span> Supports Gemini, OpenAI, and Anthropic</li>
+        </ul>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="f-card" data-fcard="1">
+        <div class="field">
+          <label>Target Company</label>
+          <input type="text" id="company" placeholder="e.g. Stripe, Linear" />
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Template</label>
+            <select id="template">
+              <option value="jakes">Jake's Resume</option>
+              <option value="classic">Classic Minimal</option>
+              <option value="modern">Modern Bars</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Pages</label>
+            <select id="max-pages">
+              <option value="1">Single Page</option>
+              <option value="2">Up to 2 Pages</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Upload Profile (YAML)</label>
+          <div class="upload-zone" id="upload-zone">
+            Click to select your base_profile.yaml
+          </div>
+          <input type="file" id="resume-upload" accept=".yaml,.yml" style="display:none" />
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="f-card" data-fcard="2">
+        <div class="grid-2">
+          <div class="field">
+            <label>Role Title</label>
+            <input type="text" id="role" placeholder="e.g. Senior SWE" />
+          </div>
+          <div class="field">
+            <label>Seniority</label>
+            <select id="seniority">
+              <option>Entry</option><option>Mid</option><option selected>Senior</option><option>Staff</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Job Description</label>
+          <textarea id="jd" rows="6" placeholder="Paste the full job description here..." style="min-height:160px;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <button class="btn-generate" id="generate-btn" type="button">
+        Generate Tailored Resume
+        <div class="progress-bar" id="progress-bar"></div>
+      </button>
+
+      <!-- Result area (hidden until generation) -->
+      <div id="result-area" style="display:none;margin-top:24px;">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:24px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="font-size:28px;">✓</div>
+            <div>
+              <div style="font-family:var(--serif);font-size:20px;">Resume Generated!</div>
+              <div style="font-size:13px;color:var(--muted);">Your tailored resume is ready for download.</div>
+            </div>
+          </div>
+
+          <!-- ATS Score -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div style="background:var(--bg4);border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-family:var(--serif);font-size:36px;color:var(--gold);" id="ats-score">0</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">ATS Score / 100</div>
+            </div>
+            <div style="background:var(--bg4);border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-family:var(--serif);font-size:36px;color:var(--teal);" id="kw-match">0%</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--muted);">Keyword Match</div>
+            </div>
+          </div>
+
+          <!-- Suggestions -->
+          <div id="suggestions-area" style="margin-bottom:16px;"></div>
+
+          <!-- Download buttons -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a id="download-pdf" href="#" class="btn-plan filled" style="text-align:center;text-decoration:none;">Download PDF</a>
+            <a id="download-docx" href="#" class="btn-plan outline" style="text-align:center;text-decoration:none;">DOCX</a>
+            <a id="download-txt" href="#" class="btn-plan outline" style="text-align:center;text-decoration:none;">TXT</a>
+            <a id="download-md" href="#" class="btn-plan outline" style="text-align:center;text-decoration:none;">Markdown</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error area -->
+      <div id="error-area" style="display:none;margin-top:16px;background:rgba(232,62,140,0.10);border:1px solid var(--pink);border-radius:8px;padding:16px;font-size:13px;color:var(--pink);"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="eyebrow">Features</div>
+  <h2 class="section-title">Built for serious<br>applicants</h2>
+  <div class="feat-grid">
+    <div class="feat-cell" data-reveal><div class="icon">🧠</div><h3>Semantic ATS Optimization</h3><p>Understands intent behind job requirements, not just keyword matching. Our AI rewrites your bullets using domain-specific language that ATS systems and recruiters both recognize.</p></div>
+    <div class="feat-cell" data-reveal><div class="icon">✍️</div><h3>Editorial Quality</h3><p>Follows elite executive formatting standards with Jake's Resume template.</p></div>
+    <div class="feat-cell" data-reveal><div class="icon">🔒</div><h3>Privacy First</h3><p>Processed via your own API key. No persistent storage of your data.</p></div>
+    <div class="feat-cell" data-reveal><div class="icon">📊</div><h3>ATS Score Analytics</h3><p>Get a compatibility score with keyword match breakdown and suggestions.</p></div>
+    <div class="feat-cell" data-reveal><div class="icon">🎨</div><h3>3 Template Styles</h3><p>Jake's Resume, Classic Minimal, and Modern Accent Bars to choose from.</p></div>
+    <div class="feat-cell" data-reveal><div class="icon">📤</div><h3>Multi-Format Export</h3><p>Export as PDF, DOCX, plain text, or Markdown for any application portal.</p></div>
+  </div>
+</section>
+
+<!-- ANIMATION DEMO -->
+<section class="demo" id="demo">
+  <div class="eyebrow">Animation Demo</div>
+  <h2 class="section-title">See anime.js in action</h2>
+  <div class="demo-layout">
+    <div class="demo-canvas-wrap">
+      <canvas id="demo-canvas" width="600" height="340"></canvas>
+    </div>
+    <div class="demo-controls">
+      <button class="demo-btn active" data-demo="stagger"><span class="d-icon">⬡</span><div><h4>Stagger Grid</h4><p>Grid items animate with staggered delay</p></div></button>
+      <button class="demo-btn" data-demo="wave"><span class="d-icon">〰</span><div><h4>Wave Field</h4><p>Sinusoidal wave propagation across dots</p></div></button>
+      <button class="demo-btn" data-demo="spring"><span class="d-icon">◎</span><div><h4>Spring Orbs</h4><p>Elastic spring physics on floating orbs</p></div></button>
+      <button class="demo-btn" data-demo="path"><span class="d-icon">⟡</span><div><h4>Path Lines</h4><p>Animated bezier curves with gradient strokes</p></div></button>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testi">
+  <div class="eyebrow">Testimonials</div>
+  <h2 class="section-title">Trusted by professionals</h2>
+  <div class="testi-grid">
+    <div class="testi-card" data-reveal>
+      <div class="qmark">"</div>
+      <blockquote>ATS Pro transformed my job search. I went from zero callbacks to three interviews in one week at top-tier tech firms.</blockquote>
+      <div class="testi-author"><div class="testi-avatar">M</div><div><div class="testi-name">Marcus Chen</div><div class="testi-role">Senior Dev, Stripe</div></div></div>
+    </div>
+    <div class="testi-card" data-reveal>
+      <div class="qmark">"</div>
+      <blockquote>The AI rewrites are shockingly good. It picked up on keywords I would never have thought to include in my resume.</blockquote>
+      <div class="testi-author"><div class="testi-avatar">S</div><div><div class="testi-name">Sarah Kim</div><div class="testi-role">ML Engineer, Meta</div></div></div>
+    </div>
+    <div class="testi-card" data-reveal>
+      <div class="qmark">"</div>
+      <blockquote>Finally a resume tool that understands ATS systems. The score analytics helped me optimize before every application.</blockquote>
+      <div class="testi-author"><div class="testi-avatar">J</div><div><div class="testi-name">James Rivera</div><div class="testi-role">SWE, Google</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="eyebrow">Pricing</div>
+  <h2 class="section-title" style="text-align:center">Simple, transparent pricing</h2>
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-price">$0</div>
+      <ul class="plan-features">
+        <li><span class="ck">✓</span> Unlimited resume generations</li>
+        <li><span class="ck">✓</span> 3 template styles</li>
+        <li><span class="ck">✓</span> ATS score analytics</li>
+        <li><span class="ck">✓</span> PDF + TXT + MD export</li>
+        <li><span class="ck">✓</span> Bring your own API key</li>
+      </ul>
+      <button class="btn-plan outline">Get started free</button>
+    </div>
+    <div class="plan-card pro">
+      <span class="plan-badge popular">Most popular</span>
+      <div class="plan-price">$12<span style="font-size:16px;color:var(--muted)">/mo</span></div>
+      <ul class="plan-features">
+        <li><span class="ck">✓</span> Everything in Free</li>
+        <li><span class="ck">✓</span> Saved profiles & resume history</li>
+        <li><span class="ck">✓</span> DOCX export</li>
+        <li><span class="ck">✓</span> Priority AI processing</li>
+        <li><span class="ck">✓</span> Multi-page resume support</li>
+        <li><span class="ck">✓</span> Email support</li>
+      </ul>
+      <button class="btn-plan filled">Start Pro trial</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section class="cta-banner">
+  <h2>Ship your best resume yet.</h2>
+  <p>Join thousands of professionals who land more interviews with AI-tailored resumes.</p>
+  <div class="hero-ctas">
+    <a href="#engine" class="btn-hero primary">Start tailoring now</a>
+    <a href="#pricing" class="btn-hero secondary">View pricing</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="nav-logo"><span class="nav-logo-icon">ATS</span>ATS Pro</div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Twitter</a>
+    <a href="#">GitHub</a>
+  </div>
+  <div>© 2026 ATS Pro</div>
+</footer>
+
+<script>
+// ── HERO CHARS ──
+(function() {
+  const title = document.getElementById('hero-title');
+  const html = title.innerHTML;
+  title.innerHTML = '';
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+
+  function wrapChars(node) {
+    if (node.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      for (const ch of node.textContent) {
+        if (ch === ' ') { frag.appendChild(document.createTextNode(' ')); }
+        else { const s = document.createElement('span'); s.className = 'char'; s.textContent = ch; frag.appendChild(s); }
+      }
+      return frag;
+    }
+    if (node.nodeType === 1) {
+      const clone = document.createElement(node.tagName);
+      for (const a of node.attributes) clone.setAttribute(a.name, a.value);
+      for (const c of node.childNodes) clone.appendChild(wrapChars(c));
+      return clone;
+    }
+    return node.cloneNode(true);
+  }
+
+  for (const child of temp.childNodes) {
+    title.appendChild(wrapChars(child));
+  }
+
+  // Animate chars
+  anime({
+    targets: title.querySelectorAll('.char'),
+    translateY: ['110%', '0%'],
+    duration: 800,
+    delay: anime.stagger(30, { start: 400 }),
+    easing: 'easeOutExpo'
+  });
+
+  // Badge
+  anime({ targets: '.hero-badge', opacity: [0, 1], translateY: [8, 0], duration: 600, delay: 300, easing: 'easeOutExpo' });
+
+  // Sub + CTAs
+  anime({ targets: '.hero-sub', opacity: [0, 1], translateY: [16, 0], duration: 600, delay: 600, easing: 'easeOutExpo' });
+  anime({ targets: '.hero-ctas', opacity: [0, 1], translateY: [16, 0], duration: 600, delay: 800, easing: 'easeOutExpo' });
+
+  // Stats count-up with prefix/suffix
+  document.querySelectorAll('.hero-stat .num').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    anime({
+      targets: el,
+      innerHTML: [0, target],
+      round: 1,
+      duration: 1200,
+      delay: 1000,
+      easing: 'easeOutExpo',
+      update: function(anim) {
+        el.innerHTML = prefix + Math.round(anim.animations[0].currentValue) + suffix;
+      }
+    });
+  });
+
+  // Floating code snippets
+  anime({ targets: '.floating-code', opacity: [0, 0.4], translateY: [20, 0], duration: 800, delay: anime.stagger(200, { start: 1200 }), easing: 'easeOutExpo' });
+  // Gentle float loop
+  function floatLoop() {
+    anime({ targets: '.floating-code', translateY: () => anime.random(-8, 8), duration: anime.random(2000, 3500), easing: 'easeInOutSine', complete: floatLoop });
+  }
+  setTimeout(floatLoop, 2500);
+})();
+
+// ── BACKGROUND CANVAS ──
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+
+  function resize() { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 60; i++) {
+    particles.push({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.5 + 0.5, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, o: Math.random() * 0.3 + 0.1 });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(124,92,255,${p.o})`;
+      ctx.fill();
+    }
+    // Lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(124,92,255,${0.06 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── SCROLL REVEAL (IntersectionObserver for performance) ──
+(function() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const el = e.target;
+        const cells = el.querySelectorAll ? el.querySelectorAll('[data-reveal]') : [el];
+        if (cells.length) {
+          cells.forEach((c, i) => {
+            anime({ targets: c, opacity: [0, 1], translateY: [30, 0], scale: [0.96, 1], duration: 600, delay: i * 120, easing: 'easeOutExpo' });
+          });
+        } else {
+          anime({ targets: el, opacity: [0, 1], translateY: [20, 0], duration: 600, easing: 'easeOutExpo' });
+        }
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.how-grid, .feat-grid, .testi-grid, .pricing-grid').forEach(el => observer.observe(el));
+
+  // Also observe template gallery and before/after
+  const templateObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        anime({ targets: e.target, opacity: [0, 1], translateY: [20, 0], duration: 500, easing: 'easeOutExpo' });
+        templateObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('.template-gallery, .before-after').forEach(el => {
+    el.style.opacity = '0';
+    templateObserver.observe(el);
+  });
+})();
+
+// ── BUTTON HOVER SPRING ──
+document.querySelectorAll('.btn-hero, .btn-filled, .btn-plan, .demo-btn').forEach(btn => {
+  btn.addEventListener('mouseenter', () => {
+    anime({ targets: btn, scale: 1.04, duration: 300, easing: 'easeOutElastic(1, .5)' });
+  });
+  btn.addEventListener('mouseleave', () => {
+    anime({ targets: btn, scale: 1, duration: 200, easing: 'easeOutQuad' });
+  });
+});
+
+// ── TEMPLATE CARD SELECTION ──
+(function() {
+  const cards = document.querySelectorAll('.template-card');
+  const templateSelect = document.getElementById('template');
+
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      if (templateSelect) {
+        templateSelect.value = card.dataset.template;
+      }
+      // Animate selection
+      anime({ targets: card, scale: [0.96, 1], duration: 300, easing: 'easeOutElastic(1, .6)' });
+    });
+  });
+
+  // Sync form select with cards
+  if (templateSelect) {
+    templateSelect.addEventListener('change', () => {
+      cards.forEach(c => {
+        c.classList.toggle('selected', c.dataset.template === templateSelect.value);
+      });
+    });
+  }
+})();
+
+// ── STEP TABS ──
+(function() {
+  let current = 0;
+  const tabs = document.querySelectorAll('.step-tab');
+  const cards = document.querySelectorAll('.f-card');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const step = parseInt(tab.dataset.step);
+      if (step === current) return;
+
+      // Mark previous as done if moving forward
+      if (step > current) {
+        for (let i = current; i < step; i++) tabs[i].classList.add('done');
+      }
+
+      // Animate out current card
+      anime({ targets: cards[current], opacity: 0, translateY: 8, duration: 200, easing: 'easeInQuad', complete: () => {
+        cards[current].classList.remove('active');
+        tabs[current].classList.remove('active');
+        current = step;
+        cards[current].classList.add('active');
+        tabs[current].classList.add('active');
+        anime({ targets: cards[current], opacity: 1, translateY: 0, duration: 300, easing: 'easeOutExpo' });
+      }});
+    });
+  });
+
+  // Checklist animation
+  const checklist = document.getElementById('checklist');
+  if (checklist) {
+    const marks = checklist.querySelectorAll('.cmark');
+    marks.forEach((m, i) => {
+      setTimeout(() => { anime({ targets: m, opacity: [0, 1], translateX: [-8, 0], duration: 400, easing: 'easeOutExpo' }); }, 800 + i * 200);
+    });
+  }
+})();
+
+// ── UPLOAD ZONE ──
+(function() {
+  const zone = document.getElementById('upload-zone');
+  const input = document.getElementById('resume-upload');
+  if (zone && input) {
+    zone.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      zone.textContent = file ? file.name : 'Click to select your base_profile.yaml';
+    });
+  }
+})();
+
+// ── GENERATE BUTTON + REAL API CALL ──
+(function() {
+  const btn = document.getElementById('generate-btn');
+  const bar = document.getElementById('progress-bar');
+  const resultArea = document.getElementById('result-area');
+  const errorArea = document.getElementById('error-area');
+  const labels = ['Parsing JD…', 'AI tailoring profile…', 'Building PDF…', 'Analyzing ATS score…', 'Finalising…'];
+  let generating = false;
+
+  btn.addEventListener('click', () => {
+    if (generating) return;
+
+    const apiKey = document.getElementById('api-key').value.trim();
+    const company = document.getElementById('company').value.trim();
+    const jd = document.getElementById('jd').value.trim();
+
+    if (!apiKey) { showStepError('Please enter your API key (Step 1).'); return; }
+    if (!company) { showStepError('Please enter the target company (Step 2).'); return; }
+    if (!jd) { showStepError('Please paste the job description (Step 3).'); return; }
+
+    generating = true;
+    btn.disabled = true;
+    bar.style.width = '0%';
+    resultArea.style.display = 'none';
+    errorArea.style.display = 'none';
+
+    let progress = 0;
+    let labelIdx = 0;
+    const originalText = btn.childNodes[0].textContent;
+
+    const interval = setInterval(() => {
+      progress += Math.random() * 8 + 2;
+      if (progress > 90) progress = 90;
+      bar.style.width = progress + '%';
+      if (labelIdx < labels.length && progress > (labelIdx + 1) * 18) {
+        btn.childNodes[0].textContent = labels[labelIdx];
+        labelIdx++;
+      }
+    }, 500);
+
+    const formData = new FormData();
+    formData.append('api_key', apiKey);
+    formData.append('company', company);
+    formData.append('jd', jd);
+    formData.append('template', document.getElementById('template').value);
+    formData.append('max_pages', document.getElementById('max-pages').value);
+
+    const fileInput = document.getElementById('resume-upload');
+    if (fileInput.files.length > 0) {
+      formData.append('profile', fileInput.files[0]);
+    }
+
+    fetch('/api/generate', { method: 'POST', body: formData })
+      .then(function(response) {
+        if (!response.ok) {
+          return response.json().then(function(data) { throw new Error(data.error || 'Generation failed'); });
+        }
+        return response.blob();
+      })
+      .then(function(blob) {
+        clearInterval(interval);
+        bar.style.width = '100%';
+        btn.childNodes[0].textContent = '✓ Resume generated!';
+
+        var pdfUrl = URL.createObjectURL(blob);
+        document.getElementById('download-pdf').href = pdfUrl;
+        document.getElementById('download-pdf').download = 'tailored_resume.pdf';
+
+        var profileFile = fileInput.files[0];
+        if (profileFile) { setupExportLinks(profileFile); }
+
+        document.getElementById('ats-score').textContent = '—';
+        document.getElementById('kw-match').textContent = '—';
+        document.getElementById('suggestions-area').innerHTML =
+          '<div style="font-size:12px;color:var(--muted);">ATS score computed server-side. Log in to see detailed analytics and save resume history.</div>';
+
+        resultArea.style.display = 'block';
+        anime({ targets: resultArea, opacity: [0, 1], translateY: [16, 0], duration: 400, easing: 'easeOutExpo' });
+
+        var a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = 'tailored_resume.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(function() {
+          btn.childNodes[0].textContent = originalText;
+          bar.style.width = '0%';
+          btn.disabled = false;
+          generating = false;
+        }, 2000);
+      })
+      .catch(function(err) {
+        clearInterval(interval);
+        bar.style.width = '0%';
+        errorArea.textContent = 'Error: ' + err.message;
+        errorArea.style.display = 'block';
+        anime({ targets: errorArea, opacity: [0, 1], duration: 300, easing: 'easeOutExpo' });
+        btn.childNodes[0].textContent = originalText;
+        btn.disabled = false;
+        generating = false;
+      });
+  });
+
+  function showStepError(msg) {
+    errorArea.textContent = msg;
+    errorArea.style.display = 'block';
+    anime({ targets: errorArea, opacity: [0, 1], duration: 300, easing: 'easeOutExpo' });
+  }
+
+  function setupExportLinks(profileFile) {
+    ['docx', 'txt', 'md'].forEach(function(fmt) {
+      var el = document.getElementById('download-' + fmt);
+      if (el) {
+        el.onclick = function(e) {
+          e.preventDefault();
+          var fd = new FormData();
+          fd.append('profile', profileFile);
+          fetch('/api/export/' + fmt, { method: 'POST', body: fd })
+            .then(function(r) { return r.blob(); })
+            .then(function(blob) {
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = 'resume.' + (fmt === 'md' ? 'md' : fmt === 'txt' ? 'txt' : 'docx');
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            });
+        };
+      }
+    });
+  }
+})();
+
+// ── DEMO CANVAS ──
+(function() {
+  const canvas = document.getElementById('demo-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 340;
+  canvas.width = W; canvas.height = H;
+  let current = 'stagger';
+  let animFrame;
+
+  function clear() { ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#14162a'; ctx.fillRect(0, 0, W, H); }
+
+  function drawStagger() {
+    clear();
+    const cols = 10, rows = 5;
+    const cellW = W / cols, cellH = H / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const delay = (r * cols + c) * 30;
+        setTimeout(() => {
+          const x = c * cellW + cellW / 2;
+          const y = r * cellH + cellH / 2;
+          const size = Math.random() * 12 + 8;
+          ctx.fillStyle = `rgba(124,92,255,${Math.random() * 0.5 + 0.3})`;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }, delay);
+      }
+    }
+  }
+
+  function drawWave() {
+    clear();
+    const dots = [];
+    for (let x = 20; x < W; x += 20) {
+      for (let y = 20; y < H; y += 20) {
+        dots.push({ x, y, baseY: y });
+      }
+    }
+    let t = 0;
+    function frame() {
+      if (current !== 'wave') return;
+      clear();
+      t += 0.03;
+      for (const d of dots) {
+        const dy = Math.sin(d.x * 0.02 + t) * 15 + Math.cos(d.y * 0.02 + t) * 10;
+        ctx.fillStyle = `rgba(124,92,255,${0.3 + Math.sin(t + d.x * 0.01) * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(d.x, d.baseY + dy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      animFrame = requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  function drawSpring() {
+    clear();
+    const orbs = [];
+    for (let i = 0; i < 20; i++) {
+      orbs.push({ x: W / 2, y: H / 2, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, r: Math.random() * 12 + 6 });
+    }
+    let t = 0;
+    function frame() {
+      if (current !== 'spring') return;
+      clear();
+      t += 0.016;
+      for (const o of orbs) {
+        // Spring back to center
+        o.vx += (W / 2 - o.x) * 0.005;
+        o.vy += (H / 2 - o.y) * 0.005;
+        o.vx *= 0.96; o.vy *= 0.96;
+        o.x += o.vx; o.y += o.vy;
+        ctx.fillStyle = `rgba(240,180,41,${0.4 + Math.sin(t * 3 + o.x) * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      animFrame = requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  function drawPath() {
+    clear();
+    let t = 0;
+    function frame() {
+      if (current !== 'path') return;
+      clear();
+      t += 0.02;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        const offset = i * 40;
+        for (let x = 0; x < W; x += 4) {
+          const y = H / 2 + Math.sin(x * 0.01 + t + i * 0.8) * (60 + offset * 0.3) + Math.cos(x * 0.02 + t * 1.5) * 20;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `rgba(124,92,255,${0.3 - i * 0.05})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      animFrame = requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
+  const demos = { stagger: drawStagger, wave: drawWave, spring: drawSpring, path: drawPath };
+
+  document.querySelectorAll('.demo-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      current = btn.dataset.demo;
+      if (animFrame) cancelAnimationFrame(animFrame);
+      demos[current]();
+    });
+  });
+
+  drawStagger();
+})();
+</script>
+</body>
+</html>

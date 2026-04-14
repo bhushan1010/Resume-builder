@@ -1,0 +1,144 @@
+# =============================================================================
+#  ATS Pro - Base Profile
+#  This file is YOUR single source of truth. Fill it in once and the AI will
+#  tailor it to any job description you throw at it.
+#
+#  HOW IT WORKS:
+#    - "basics", "education" are static — they appear on every resume as-is.
+#    - "skills", "experience", "projects" are AI-tailored per job description.
+#      The AI picks the most relevant items and rewrites bullets to match the JD.
+#
+#  TIPS:
+#    - Add MORE experiences and projects than you think you need.
+#      The AI will pick the best ones for each role.
+#    - Write bullets in plain English — the AI will polish them.
+#    - Keep technologies as a flat list; the AI will decide which to highlight.
+# =============================================================================
+
+# ── Personal Info ─────────────────────────────────────────────────────────────
+basics:
+  name: "Alex Johnson"
+  email: "alex.johnson@email.com"
+  phone: "+1 (555) 123-4567"
+  linkedin: "linkedin.com/in/alexjohnson"   # Do NOT include "https://"
+  github: "github.com/alexjohnson"          # Do NOT include "https://"
+
+# ── Education ──────────────────────────────────────────────────────────────────
+# Add as many entries as you like. Most recent first.z
+education:
+  - institution: "University of California, Berkeley"
+    location: "Berkeley, CA"
+    degree: "B.S. in Computer Science"
+    startDate: "Aug 2019"
+    endDate: "May 2023"
+
+  - institution: "Stanford Online"
+    location: "Online"
+    degree: "Certificate in Machine Learning"
+    startDate: "Jan 2024"
+    endDate: "Jun 2024"
+
+# ── Skills ─────────────────────────────────────────────────────────────────────
+# List EVERYTHING you know. The AI will filter down to what's relevant per JD.
+# Split into exactly these three categories:  languages | frameworks | tools
+skills:
+  languages:
+    - Python
+    - JavaScript
+    - TypeScript
+    - Go
+    - SQL
+    - HTML
+    - CSS
+
+  frameworks:
+    - React
+    - Node.js
+    - FastAPI
+    - Flask
+    - Next.js
+    - PyTorch
+    - TensorFlow
+
+  tools:
+    - Git
+    - Docker
+    - Kubernetes
+    - AWS (EC2, S3, Lambda)
+    - PostgreSQL
+    - MongoDB
+    - Redis
+    - GitHub Actions
+    - Jira
+    - Figma
+
+# ── Work Experience ────────────────────────────────────────────────────────────
+# Add ALL your experiences. The AI will select and rewrite the most relevant ones.
+# Write bullets using the "Action Verb + Task + Impact" formula if possible.
+experience:
+  - company: "Stripe"
+    role: "Software Engineer Intern"
+    location: "San Francisco, CA"
+    startDate: "Jun 2022"
+    endDate: "Aug 2022"
+    bullets:
+      - "Built an internal dashboard with React and TypeScript to monitor payment pipeline health, reducing incident response time by 30%."
+      - "Optimised 5 critical SQL queries in the billing engine, cutting average query time from 800ms to 120ms."
+      - "Collaborated with the security team to implement MFA for internal tooling used by 500+ engineers."
+
+  - company: "Acme Corp"
+    role: "Full Stack Developer"
+    location: "Remote"
+    startDate: "Jan 2023"
+    endDate: "Aug 2024"
+    bullets:
+      - "Architected a real-time notification system using WebSockets and Redis pub/sub, serving 50k daily active users."
+      - "Led migration of a monolithic Node.js API to a microservices architecture on AWS, improving deployment frequency from weekly to daily."
+      - "Reduced CI/CD pipeline build time by 45% by introducing Docker layer caching and parallelised test runs in GitHub Actions."
+      - "Mentored 2 junior engineers, conducting weekly code reviews and pair programming sessions."
+
+  - company: "OpenAI (Research)"
+    role: "Machine Learning Engineer"
+    location: "San Francisco, CA"
+    startDate: "Sep 2024"
+    endDate: "Present"
+    bullets:
+      - "Fine-tuned LLaMA-2 on a proprietary dataset of 2M records using LoRA, achieving a 15% improvement on downstream classification benchmarks."
+      - "Designed a scalable data pipeline using Apache Spark and AWS S3 to preprocess 500GB of raw training data weekly."
+      - "Implemented RLHF reward modelling loop in PyTorch, reducing human annotation cost by 40%."
+
+# ── Projects ───────────────────────────────────────────────────────────────────
+# Add your best personal and side projects. The AI will pick the top ones AND
+# generate 2-3 NEW projects tailored specifically to the JD — so even a small
+# list here is fine.
+projects:
+  - name: "DevPulse — Developer Analytics SaaS"
+    technologies:
+      - Next.js
+      - FastAPI
+      - PostgreSQL
+      - Docker
+      - AWS
+    bullets:
+      - "Built an end-to-end SaaS platform that aggregates GitHub, Jira, and Slack activity into developer productivity dashboards."
+      - "Achieved sub-200ms p95 API latency by implementing database indexing and an in-memory Redis caching layer."
+
+  - name: "SmartCart — AI Shopping Assistant"
+    technologies:
+      - Python
+      - OpenAI API
+      - React
+      - Stripe
+    bullets:
+      - "Developed a conversational shopping assistant using GPT-4 function calling to recommend products from a live e-commerce catalogue."
+      - "Integrated Stripe Checkout and webhooks for end-to-end payment processing with zero failed transactions in beta."
+
+  - name: "CloudWatcher — Kubernetes Cost Optimiser"
+    technologies:
+      - Go
+      - Kubernetes
+      - Prometheus
+      - Grafana
+    bullets:
+      - "Wrote a Go-based controller that monitors Kubernetes pod resource utilisation and automatically right-sizes CPU/memory requests."
+      - "Reduced staging cluster AWS spend by $800/month within two weeks of deployment at a 50-person startup."
