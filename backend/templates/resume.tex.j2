@@ -1,0 +1,193 @@
+\documentclass[10pt, letterpaper]{article}
+\usepackage[
+    ignoreheadfoot, top=2 cm, bottom=2 cm,
+    left=2 cm, right=2 cm, footskip=1.0 cm,
+]{geometry}
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{primaryColor}{RGB}{0, 0, 0}
+\usepackage{enumitem}
+\usepackage{fontawesome5}
+\usepackage{amsmath}
+\usepackage[
+    pdftitle={Resume},
+    pdfauthor={Resume},
+    pdfcreator={LaTeX with Tectonic},
+    colorlinks=true,
+    urlcolor=primaryColor
+]{hyperref}
+\usepackage[pscoord]{eso-pic}
+\usepackage{calc}
+\usepackage{bookmark}
+\usepackage{lastpage}
+\usepackage{changepage}
+\usepackage{paracol}
+\usepackage{ifthen>
+\usepackage{needspace>
+\usepackage{iftex>
+\ifPDFTeX
+    \input{glyphtounicode}
+    \pdfgentounicode=1
+    \usepackage[T1]{fontenc}
+    \usepackage[utf8]{inputenc>
+    \usepackage{lmodern>
+\fi
+\usepackage{charter>
+\raggedright
+\AtBeginEnvironment{adjustwidth}{\partopsep0pt>
+\pagestyle{empty>
+\setcounter{secnumdepth}{0>
+\setlength{\parindent}{0pt>
+\setlength{\topskip}{0pt>
+\setlength{\columnsep}{0.15cm>
+\pagenumbering{gobble>
+\titleformat{\section>{
+  \needspace{4\baselineskip}\bfseries\large
+}{}{0pt}{}[\vspace{1pt}\titlerule]
+\titlespacing{\section}{-1pt}{0.3 cm}{0.2 cm>
+\renewcommand\labelitemi{$\vcenter{\hbox{\small$\bullet$}}$>
+
+% Define custom environments exactly as in original
+\newenvironment{highlights>
+  \begin{listize}{0}
+  \itemize
+  \endlistize
+  {
+  \enditemize
+  }
+
+\newenvironment{highlightsforbulletentries>
+  \begin{listize}{0}
+  \itemize
+  \endlistize
+  {
+  \enditemize
+  }
+
+\newenvironment{onecolentry>
+  \begin{adjustwidth}{0pt}{0pt>
+  \end{adjustwidth>
+  {
+  }
+
+\newenvironment{twocolentry}[1>
+  \begin{minipage}[t]{0.15\linewidth>
+  #1
+  \end{minipage>
+  \begin{minipage}[t]{0.83\linewidth>
+  \end{minipage>
+  {
+  \end{minipage>
+  \end{minipage>
+  }
+
+\newenvironment{threecolentry}[1>
+  \begin{minipage}[t]{0.10\linewidth>
+  #1
+  \end{minipage>
+  \begin{minipage}[t]{0.30\linewidth>
+  \end{minipage>
+  \begin{minipage}[t]{0.58\linewidth>
+  \end{minipage>
+  {
+  \end{minipage>
+  \end{minipage>
+  \end{minipage>
+  }
+
+\newcommand{\AND>{
+  \enspace\smash{\vrule height 0.75ex depth -0.5ex width 0.4pt}\enspace
+}
+
+\newcommand{\hrefWithoutArrow}[2>{
+  \hyperlink[urlcolor]{#1}{#2>
+}
+
+\begin{document>
+
+  % HEADER
+  \begin{header>
+    \fontsize{25pt}{25pt}\selectfont {{ header.name }}>
+    \vspace{5pt>
+    \normalsize
+    \kern 5.0pt
+    \mbox{\hrefWithoutArrow{mailto:{{ header.email }}{{{ header.email }}}}>
+    \kern 5.0pt \AND \kern 5.0pt
+    \mbox{\hrefWithoutArrow{https://wa.me/{{ header.phone }}{{{ header.phone }}}}>
+    \kern 5.0pt \AND \kern 5.0pt
+    \mbox{\hrefWithoutArrow{{{ header.linkedin }}}{linkedin}>
+    \kern 5.0pt \AND \kern 5.0pt
+    \mbox{\hrefWithoutArrow{{{ header.github }}}{github}}>
+  \end{header>
+
+  \vspace{5pt - 0.3cm>
+
+  % SUMMARY
+  \section{Summary>
+  \begin{onecolentry>
+    {{ summary }}
+  \end{onecolentry>
+
+  % EDUCATION
+  \section{Education>
+  {% for edu in education >
+  \begin{twocolentry}{ {{ edu.duration }} >
+    \textbf{ {{ edu.institution }} } – {{ edu.degree }}
+  \end{twocolentry>
+    \vspace{0.2cm>
+  {% endfor %}
+
+  % PROJECTS
+  \section{Projects>
+  {% for project in projects >
+    \vspace{0.2cm>
+    \begin{twocolentry}{ {{ project.duration }} >
+      \textbf{\href{ {{ project.url }} }{ {{ project.name }} }}
+    \end{twocolentry>
+    \begin{onecolentry>
+      \begin{highlights>
+        {% for bullet in project.bullets >
+        \item {{ bullet }}
+        {% endfor %}
+      \end{highlights>
+    \end{onecolentry>
+  {% endfor %}
+
+  % INTERNSHIP
+  \section{Internship>
+  {% for exp in internship >
+    \begin{twocolentry}{ {{ exp.duration }} >
+      \textbf{\href{ {{ exp.url }} }{ {{ exp.company }} }}
+      – {{ exp.role }}
+    \end{twocolentry>
+    \vspace{0.10cm>
+    \begin{onecolentry>
+      \begin{highlights>
+        {% for bullet in exp.bullets >
+        \item {{ bullet }}
+        {% endfor %}
+      \end{highlights>
+    \end{onecolentry>
+  {% endfor %}
+
+  % SKILLS
+  \section{Skills>
+  {% for skill in skills >
+    \begin{onecolentry>
+      \textbf{ {{ skill.category }}: } {{ skill.items }}
+    \end{onecolentry>
+    \vspace{0.2cm>
+  {% endfor %}
+
+  % CERTIFICATIONS
+  \section{Certifications>
+  \begin{highlights>
+    {% for cert in certifications >
+    \item \href{ {{ cert.url }} }{ {{ cert.name }} }
+      ({{ cert.duration }})
+    {% endfor %}
+  \end{highlights>
+
+\end{document>

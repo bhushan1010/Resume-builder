@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: resume-rewriter-backend
+    env: docker
+    plan: free
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    dockerfilePath: ./backend/Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        fromBackend:
+          name: resume-rewriter-backend
+          property: envVars
+          key: GEMINI_API_KEY
+      - key: JWT_SECRET
+        fromBackend:
+          name: resume-rewriter-backend
+          property: envVars
+          key: JWT_SECRET
+    disk:
+      name: resume-data
+      mountPath: /app/data
+      sizeGB: 1

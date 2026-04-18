@@ -1,43 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-*.spec
-
-# Virtual environment
-venv/
-env/
-.venv/
+backend/.env
 .env
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Database
-data/*.db
-
-# Output files
-output/*.pdf
-output/*.docx
-output/*.txt
-output/*.md
-output/*.tex
-
-# Logs
-*.log
-
-# Environment
-.env
+/backend/models/__pycache__
+/backend/__pycache__
+/frontend/node_modules

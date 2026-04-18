@@ -1,0 +1,173 @@
+\documentclass[10pt, letterpaper]{article}
+\usepackage[
+    ignoreheadfoot, top=2 cm, bottom=2 cm,
+    left=2 cm, right=2 cm, footskip=1.0 cm,
+]{geometry}
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{primaryColor}{RGB}{0, 0, 0}
+\usepackage{enumitem}
+\usepackage{fontawesome5}
+\usepackage{amsmath}
+\usepackage[
+    pdftitle={Resume},
+    pdfauthor={Resume},
+    pdfcreator={LaTeX with Tectonic},
+    colorlinks=true,
+    urlcolor=primaryColor
+]{hyperref}
+\usepackage[pscoord]{eso-pic}
+\usepackage{calc}
+\usepackage{bookmark}
+\usepackage{lastpage}
+\usepackage{changepage}
+\usepackage{paracol}
+\usepackage{ifthen}
+\usepackage{needspace}
+\usepackage{iftex}
+\ifPDFTeX
+    \input{glyphtounicode}
+    \pdfgentounicode=1
+    \usepackage[T1]{fontenc}
+    \usepackage[utf8]{inputenc}
+    \usepackage{lmodern}
+\fi
+\usepackage{charter}
+\raggedright
+\AtBeginEnvironment{adjustwidth}{\partopsep0pt}
+\pagestyle{empty}
+\setcounter{secnumdepth}{0}
+\setlength{\parindent}{0pt}
+\setlength{\topskip}{0pt}
+\setlength{\columnsep}{0.15cm}
+\pagenumbering{gobble}
+\titleformat{\section}{
+  \needspace{4\baselineskip}\bfseries\large
+}{}{0pt}{}[\vspace{1pt}\titlerule]
+\titlespacing{\section}{-1pt}{0.3 cm}{0.2 cm}
+\renewcommand\labelitemi{$\vcenter{\hbox{\small$\bullet$}}$}
+
+% Define custom environments
+\newenvironment{highlights}
+  \begin{listize}{0}
+  \itemize
+  \endlistize
+  {
+  \enditemize
+  }
+
+\newenvironment{highlightsforbulletentries}
+  \begin{listize}{0}
+  \itemize
+  \endlistize
+  {
+  \enditemize
+  }
+
+\newenvironment{onecolentry}
+  \begin{adjustwidth}{0pt}{0pt}
+  \end{adjustwidth}
+  {
+  }
+
+\newenvironment{twocolentry}[1]
+  \begin{minipage}[t]{0.15\linewidth}
+  #1
+  \end{minipage}
+  \begin{minipage}[t]{0.83\linewidth}
+  \end{minipage}
+  {
+  \end{minipage}
+  \end{minipage}
+  }
+
+\newenvironment{threecolentry}[1]
+  \begin{minipage}[t]{0.10\linewidth}
+  #1
+  \end{minipage}
+  \begin{minipage}[t]{0.30\linewidth}
+  \end{minipage}
+  \begin{minipage}[t]{0.58\linewidth}
+  \end{minipage}
+  {
+  \end{minipage}
+  \end{minipage}
+  \end{minipage}
+  }
+
+\newcommand{\AND}{%
+  \enspace\smash{\vrule height 0.75ex depth -0.5ex width 0.4pt}\enspace
+}
+
+\newcommand{\hrefWithoutArrow}[2]{%
+  \hyperlink[urlcolor]{#1}{#2}%
+}
+
+\begin{document}
+
+% Test content to ensure all packages work
+\header
+  \fontsize{25pt}{25pt}\selectfont Test Name
+  \vspace{5pt}
+  \normalsize
+  \kern 5.0pt
+  \mbox{\hrefWithoutArrow{mailto:test@example.com}{test@example.com}}
+  \kern 5.0pt \AND \kern 5.0pt
+  \mbox{\hrefWithoutArrow{https://wa.me/1234567890}{123-456-7890}}
+  \kern 5.0pt \AND \kern 5.0pt
+  \mbox{\hrefWithoutArrow{https://linkedin.com/in/test}{linkedin}}
+  \kern 5.0pt \AND \kern 5.0pt
+  \mbox{\hrefWithoutArrow{https://github.com/test}{github}}
+\endheader
+
+\vspace{5pt - 0.3cm}
+
+\section{Summary}
+\begin{onecolentry}
+  This is a test summary.
+\end{onecolentry}
+
+\section{Education}
+\begin{twocolentry}{2020-2024}
+  \textbf{Test University} – Bachelor of Science
+\end{twocolentry}
+\vspace{0.2cm}
+
+\section{Projects}
+\vspace{0.2cm}
+\begin{twocolentry}{2023}
+  \textbf{\href{https://example.com}{Test Project}}
+\end{twocolentry}
+\begin{onecolentry}
+  \begin{highlights}
+    \item Test bullet point
+  \end{highlights}
+\end{onecolentry}
+
+\section{Internship}
+\vspace{0.2cm}
+\begin{twocolentry}{2022}
+  \textbf{\href{https://example.com}{Test Company}}
+  – Test Role
+\end{twocolentry}
+\vspace{0.10cm}
+\begin{onecolentry}
+  \begin{highlights}
+    \item Test bullet point
+  \end{highlights}
+\end{onecolentry}
+
+\section{Skills}
+\begin{onecolentry}
+  \textbf{Programming: } Python, JavaScript
+\end{onecolentry}
+\vspace{0.2cm}
+
+\section{Certifications}
+\begin{highlights}
+  \item \href{https://example.com}{Test Certification} (2023)
+\end{highlights}
+
+\end{document}
