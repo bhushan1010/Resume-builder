@@ -77,6 +77,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             detail="Username or email already registered"
         )
     
+    if len(user.password) > 72:
+        raise HTTPException(status_code=400, detail="Password must be 72 characters or fewer")
+    
     # Hash password and create user
     hashed_password = pwd_context.hash(user.password)
     db_user = user_model.User(

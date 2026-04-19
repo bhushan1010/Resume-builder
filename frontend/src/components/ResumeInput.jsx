@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './ResumeInput.css';
-import axios from 'axios';
+import api from '../api/client';
 
 const ResumeInput = ({ 
   resumeText, setResumeText, 
@@ -46,10 +46,9 @@ const ResumeInput = ({
       const formData = new FormData();
       formData.append('pdf_file', file);
       
-      const response = await axios.post('/resume/extract-pdf', formData, {
+      const response = await api.post('/resume/extract-pdf', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          // Assuming auth token is handled via cookies or axios interceptors
+          'Content-Type': 'multipart/form-data'
         }
       });
       

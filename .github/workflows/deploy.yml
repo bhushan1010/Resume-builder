@@ -118,27 +118,26 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # JOB 3: Deploy backend to Render (triggers Render deploy hook)
+  # JOB 3: Deploy backend to Koyeb
   # ─────────────────────────────────────────────────────────────────────────────
   deploy-backend:
-    name: Deploy Backend → Render
+    name: Deploy Backend → Koyeb
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Trigger Render deploy hook
+      - name: Trigger Koyeb deploy hook
         run: |
-          curl -s -o /dev/null -w "HTTP %{http_code}" \
-            "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          curl -s -X POST "${{ secrets.KOYEB_DEPLOY_HOOK_URL }}"
           echo ""
-          echo "Render deploy triggered."
+          echo "Koyeb deploy triggered."
 
-      - name: Wait for Render to come up
+      - name: Wait for Koyeb to come up
         run: |
-          echo "Waiting 90s for Render to build and start..."
-          sleep 90
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_BACKEND_URL }}/")
+          echo "Waiting 60s for Koyeb to build and start..."
+          sleep 60
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.KOYEB_BACKEND_URL }}/")
           echo "Health check status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "::warning::Backend health check returned $STATUS — may still be deploying."

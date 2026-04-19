@@ -12,7 +12,7 @@ from database import Base
 Base.metadata.create_all(bind=engine)
 
 # Password hashing (same as in auth.py)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def create_test_user():
     # Create database session

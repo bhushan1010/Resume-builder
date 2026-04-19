@@ -10,3 +10,4 @@ python-dotenv
 pydantic[email]
 pymupdf
 reportlab
+psycopg2-binary
