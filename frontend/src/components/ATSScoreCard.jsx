@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import './ATSScoreCard.css';
 
 const ATSScoreCard = ({ beforeScore, afterScore, sectionScoresBefore, sectionScoresAfter }) => {
   const [animatedBeforeScore, setAnimatedBeforeScore] = useState(0);
@@ -6,10 +7,10 @@ const ATSScoreCard = ({ beforeScore, afterScore, sectionScoresBefore, sectionSco
 
   // Animate scores when they change
   useEffect(() => {
-    if (beforeScore !== null) {
+    if (beforeScore !== null && beforeScore !== undefined) {
       let current = 0;
       const target = beforeScore;
-      const increment = Math.ceil(target / 20); // Animate over 20 frames
+      const increment = Math.ceil(target / 20) || 1; 
       const timer = setInterval(() => {
         current += increment;
         if (current >= target) {
@@ -19,16 +20,16 @@ const ATSScoreCard = ({ beforeScore, afterScore, sectionScoresBefore, sectionSco
           setAnimatedBeforeScore(current);
         }
       }, 50);
-      
+
       return () => clearInterval(timer);
     }
   }, [beforeScore]);
 
   useEffect(() => {
-    if (afterScore !== null) {
+    if (afterScore !== null && afterScore !== undefined) {
       let current = 0;
       const target = afterScore;
-      const increment = Math.ceil(target / 20); // Animate over 20 frames
+      const increment = Math.ceil(target / 20) || 1;
       const timer = setInterval(() => {
         current += increment;
         if (current >= target) {
@@ -38,54 +39,84 @@ const ATSScoreCard = ({ beforeScore, afterScore, sectionScoresBefore, sectionSco
           setAnimatedAfterScore(current);
         }
       }, 50);
-      
+
       return () => clearInterval(timer);
     }
   }, [afterScore]);
 
-  const getScoreColor = (score) => {
-    if (score === null) return 'border-gray-300 bg-gray-50 text-gray-500';
-    if (score < 40) return 'border-red-500 bg-red-50 text-red-500';
-    if (score < 70) return 'border-amber-500 bg-amber-50 text-amber-500';
-    return 'border-green-500 bg-green-50 text-green-500';
+  const getScoreColorHex = (score) => {
+    if (score === null || score === undefined) return 'var(--border)';
+    if (score < 40) return 'var(--accent-red)';
+    if (score < 70) return 'var(--accent-amber)';
+    return 'var(--accent-green)';
   };
 
-  const getScoreLabel = (score) => {
-    if (score === null) return 'N/A';
-    return `${score}%`;
+  const ringRadius = 54;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+
+  const renderRing = (score, animatedScore, label) => {
+    const isMissing = score === null || score === undefined;
+    const offset = isMissing ? ringCircumference : ringCircumference - ((animatedScore || 0) / 100) * ringCircumference;
+    const color = getScoreColorHex(score);
+
+    return (
+      <div className="ring-container">
+        <div className="ring-svg-wrapper">
+          <svg width="140" height="140" style={{ transform: 'rotate(-90deg)' }}>
+            <circle
+              cx="70"
+              cy="70"
+              r={ringRadius}
+              fill="transparent"
+              stroke="var(--bg-elevated)"
+              strokeWidth="10"
+            />
+            <circle
+              cx="70"
+              cy="70"
+              r={ringRadius}
+              fill="transparent"
+              stroke={color}
+              strokeWidth="10"
+              strokeDasharray={ringCircumference}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              style={{ transition: 'stroke-dashoffset 0.1s linear, stroke 0.3s ease' }}
+            />
+          </svg>
+          <div 
+            className="ring-score-text"
+            style={{ color: isMissing ? 'var(--text-tertiary)' : 'var(--text-primary)' }}
+          >
+            {isMissing ? '--' : animatedScore}
+          </div>
+        </div>
+        <div className="ring-label">
+          {label}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6">
-      {/* Score Display */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Before Score */}
-        <div className={`p-4 rounded-lg ${getScoreColor(beforeScore)}`}>
-          <h3 className="text-sm font-medium mb-2">Before Rewrite</h3>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-bold">{getScoreLabel(beforeScore)}</span>
-            <span className="ml-1 text-sm">/100</span>
-          </div>
-          <p className="mt-2 text-xs">{beforeScore === null ? 'No data' : `Score before optimization`}</p>
-        </div>
-        
-        {/* After Score */}
-        <div className={`p-4 rounded-lg ${getScoreColor(afterScore)}`}>
-          <h3 className="text-sm font-medium mb-2">After Rewrite</h3>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-bold">{getScoreLabel(afterScore)}</span>
-            <span className="ml-1 text-sm">/100</span>
-          </div>
-          <p className="mt-2 text-xs">{afterScore === null ? 'No data' : `Score after optimization`}</p>
-        </div>
+    <div className="score-card-container">
+      <div className="score-rings-wrapper">
+        {renderRing(beforeScore, animatedBeforeScore, 'Before Rewrite')}
+        {renderRing(afterScore, animatedAfterScore, 'After Rewrite')}
       </div>
 
-      {/* Section Breakdown */}
-      {(Object.keys(sectionScoresBefore).length > 0 || Object.keys(sectionScoresAfter).length > 0) && (
-        <div>
-          <h3 className="text-sm font-medium mb-3">Section Breakdown</h3>
-          <div className="space-y-2">
-            {[ 
+      {(sectionScoresBefore && Object.keys(sectionScoresBefore).length > 0) && (
+        <div className="breakdown-section">
+          <h3>Section Breakdown</h3>
+          <div className="breakdown-table">
+            <div className="breakdown-header">
+              <div>Section</div>
+              <div style={{ textAlign: 'center' }}>Before</div>
+              <div style={{ textAlign: 'center' }}>After</div>
+              <div style={{ textAlign: 'center' }}>Change</div>
+            </div>
+            
+            {[
               { key: 'summary', label: 'Summary' },
               { key: 'education', label: 'Education' },
               { key: 'projects', label: 'Projects' },
@@ -93,21 +124,36 @@ const ATSScoreCard = ({ beforeScore, afterScore, sectionScoresBefore, sectionSco
               { key: 'skills', label: 'Skills' },
               { key: 'certifications', label: 'Certifications' }
             ].map(section => {
-              const before = sectionScoresBefore[section.key] ?? 0;
-              const after = sectionScoresAfter[section.key] ?? 0;
+              const before = sectionScoresBefore?.[section.key] ?? 0;
+              const after = sectionScoresAfter?.[section.key] ?? 0;
               const change = after - before;
-              const changeClass = change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-gray-500';
-              const changeIcon = change > 0 ? '↑' : change < 0 ? '↓' →;
               
+              let changeColor = 'var(--text-tertiary)';
+              let changeBg = 'transparent';
+              let symbol = '—';
+              
+              if (change > 0) {
+                changeColor = 'var(--accent-green)';
+                changeBg = 'rgba(16, 185, 129, 0.1)';
+                symbol = '↑';
+              } else if (change < 0) {
+                changeColor = 'var(--accent-red)';
+                changeBg = 'rgba(239, 68, 68, 0.1)';
+                symbol = '↓';
+              }
+
               return (
-                <div key={section.key} className="flex justify-between text-sm">
-                  <span>{section.label}</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="w-8 text-center">{before}%</span>
-                    <span className="w-8 text-center">{after}%</span>
-                    <span className={`${changeClass} w-8 text-center`}>
-                      {changeIcon}
-                    </span>
+                <div key={section.key} className="breakdown-row">
+                  <div className="breakdown-section-name">{section.label}</div>
+                  <div className="breakdown-score">{before}%</div>
+                  <div className="breakdown-score">{after}%</div>
+                  <div className="breakdown-change-wrapper">
+                    <div 
+                      className="breakdown-change-badge"
+                      style={{ background: changeBg, color: changeColor }}
+                    >
+                      {symbol} {Math.abs(change)}%
+                    </div>
                   </div>
                 </div>
               );

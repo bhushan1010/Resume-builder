@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import api from '../api/client';
+import Navbar from '../components/Navbar';
 import ResumeInput from '../components/ResumeInput';
 import ATSScoreCard from '../components/ATSScoreCard';
 import RewrittenPreview from '../components/RewrittenPreview';
 import HistoryCard from '../components/HistoryCard';
+import './Dashboard.css';
 
 function Dashboard() {
   const [resumeText, setResumeText] = useState('');
@@ -13,6 +15,7 @@ function Dashboard() {
   const [rewrittenResume, setRewrittenResume] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [loading, setLoading] = useState({ analyze: false, rewrite: false });
+  const [activeTab, setActiveTab] = useState('scores');
   const [history, setHistory] = useState([]);
 
   const analyzeResume = async () => {
@@ -63,7 +66,6 @@ function Dashboard() {
       setRewrittenResume(response.data.rewritten_json);
       setSessionId(response.data.session_id);
       
-      // Also update history
       loadHistory();
     } catch (error) {
       alert('Rewrite failed. Please try again.');
@@ -101,124 +103,131 @@ function Dashboard() {
     }
   };
 
-  // Load history on mount
   React.useEffect(() => {
     loadHistory();
   }, []);
 
+  let step1State = 'active';
+  let step2State = '';
+  let step3State = '';
+
+  if (atsScores.after) {
+    step1State = 'completed';
+    step2State = 'completed';
+    step3State = 'completed';
+  } else if (atsScores.before) {
+    step1State = 'completed';
+    step2State = 'completed';
+    step3State = 'active';
+  }
+
+  const renderStep = (num, label, state, hasNext) => (
+    <>
+      <div className={`step ${state}`}>
+        <div className="step-number">
+          {state === 'completed' ? '✓' : num}
+        </div>
+        <div className="step-label">{label}</div>
+      </div>
+      {hasNext && <div className="step-line"></div>}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-full">
-            <div className="flex flex-col items-center justify-between px-6 pt-14 pb-16 space-y-10 sm:flex-row sm:space-y-0 sm:space-x-10">
-              <div className="space-y-6 text-center">
-                <h2 className="text-base font-semibold text-indigo-600">
-                  ATS Resume Rewriter
-                </h2>
-                <p className="mt-1 text-sm text-gray-600">
-                  Optimize your resume for Applicant Tracking Systems
-                </p>
+    <div className="page-container">
+      <Navbar />
+      
+      <div className="dashboard-grid">
+        <div style={{ gridColumn: '1 / -1' }}>
+          <div style={{ maxWidth: '600px', margin: '40px auto 0', textAlign: 'center' }}>
+            <div className="hero-badge animate-in" style={{ animationDelay: '0ms' }}>
+              <span className="badge-dot"></span>
+              AI-Powered Resume Optimizer
+            </div>
+            
+            <h1 className="hero-title animate-in" style={{ animationDelay: '80ms' }}>
+              Resume Optimizer
+            </h1>
+            
+            <p className="hero-subtitle animate-in" style={{ animationDelay: '120ms' }}>
+              Paste your resume and job description to begin
+            </p>
+
+            <div className="stepper animate-in" style={{ animationDelay: '160ms', justifyContent: 'center' }}>
+              {renderStep(1, 'Paste Resume', step1State, true)}
+              {renderStep(2, 'Analyze', step2State, true)}
+              {renderStep(3, 'Rewrite & Export', step3State, false)}
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-left">
+          <ResumeInput 
+            resumeText={resumeText}
+            setResumeText={setResumeText}
+            jobDescription={jobDescription}
+            setJobDescription={setJobDescription}
+            onAnalyze={analyzeResume}
+            onRewrite={rewriteResume}
+            loading={loading}
+            canRewrite={Boolean(atsScores.before)}
+          />
+        </div>
+
+        <div className="dashboard-right animate-in" style={{ animationDelay: '320ms' }}>
+          <div className="dash-panel-card">
+            <div className="dash-panel-header">
+              <div className="dash-tabs">
+                <button 
+                  onClick={() => setActiveTab('scores')}
+                  className={`dash-tab-btn ${activeTab === 'scores' ? 'active' : ''}`}
+                >
+                  Scores
+                </button>
+                <button 
+                  onClick={() => setActiveTab('preview')}
+                  className={`dash-tab-btn ${activeTab === 'preview' ? 'active' : ''}`}
+                >
+                  Preview
+                </button>
               </div>
-              
-              <div className="hidden sm:block">
-                <div className="relative h-48 w-48">
-                  <svg className="absolute inset-0" viewBox="0 0 64 64" aria-hidden="true">
-                    <defs>
-                      <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#4f46e5" />
-                        <stop offset="100%" stopColor="#7c3aed" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="32" cy="32" r="30" stroke="url(#gradient)" strokeWidth="2" fill="none" />
-                    <path 
-                      d="M32 4l2.929 2.929M5.758 5.758l12.242 12.242M20.485 43.515l12.242-12.242M57.071 57.071l-2.929-2.929"
-                      stroke="url(#gradient)" 
-                      strokeWidth="2" 
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <p className="mt-6 text-center text-sm font-medium text-gray-600">
-                    Upload & Optimize
-                  </p>
-                </div>
-              </div>
-              
-              <div className="w-full space-y-6">
-                <ResumeInput 
-                  resumeText={resumeText}
-                  setResumeText={setResumeText}
-                  jobDescription={jobDescription}
-                  setJobDescription={setJobDescription}
-                  onAnalyze={analyzeResume}
-                  onRewrite={rewriteResume}
-                  loading={loading}
-                  canRewrite={Boolean(atsScores.before)}
+
+              <button 
+                onClick={handleDownloadPDF}
+                disabled={!sessionId || loading.rewrite}
+                className="export-btn"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                {loading.rewrite ? 'Exporting...' : 'Export PDF'}
+              </button>
+            </div>
+
+            <div className="dash-panel-body">
+              {activeTab === 'scores' && (
+                <ATSScoreCard 
+                  beforeScore={atsScores.before} 
+                  afterScore={atsScores.after}
+                  sectionScoresBefore={sectionScores.before}
+                  sectionScoresAfter={sectionScores.after}
+                  loading={loading.analyze || loading.rewrite}
                 />
-                
-                {!atsScores.before && !atsScores.after ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">
-                      Analyze your resume to see ATS scores
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <ATSScoreCard 
-                      beforeScore={atsScores.before} 
-                      afterScore={atsScores.after}
-                      sectionScoresBefore={sectionScores.before}
-                      sectionScoresAfter={sectionScores.after}
-                    />
-                    
-                    {rewrittenResume && (
-                      <div className="mt-6">
-                        <RewrittenPreview resumeData={rewrittenResume} />
-                        <button 
-                          onClick={handleDownloadPDF}
-                          disabled={loading.rewrite}
-                          className="mt-4 w-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:offset-2"
-                        >
-                          {loading.rewrite ? 'Generating PDF...' : 'Download PDF'}
-                        </button>
-                      </div>
-                    )}
-                    
-                    {!rewrittenResume && atsScores.before && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500">
-                          Click "Rewrite" to generate an optimized resume
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+              )}
+              
+              {activeTab === 'preview' && (
+                <RewrittenPreview 
+                  resumeData={rewrittenResume}
+                  loading={loading.analyze || loading.rewrite}
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
-      
-      {/* History Section */}
-      <div className="mt-8">
-        <h2 className="sr-only">History</h2>
-        <div className="space-y-4">
-          {history.length > 0 ? (
-            history.map((session) => (
-              <HistoryCard 
-                key={session.id} 
-                session={session} 
-              />
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-gray-500">
-                No history yet. Analyze and rewrite resumes to see them here.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 }

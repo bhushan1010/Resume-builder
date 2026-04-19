@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, ForeignKey
 from sqlalchemy.sql import func
-from ..database import Base
+from database import Base
 
 class RewriteSession(Base):
     __tablename__ = "rewrite_sessions"

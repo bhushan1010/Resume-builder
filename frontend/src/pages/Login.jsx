@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../api/client';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -15,114 +16,132 @@ function Login() {
     setError('');
     
     try {
-      // Using email as username for login
-      const response = await api.post('/auth/login', {
-        username: email,  // The backend expects username field but we're sending email
-        password: password
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await api.post('/auth/login', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
       
-      // Save token
       localStorage.setItem('token', response.data.access_token);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError('Invalid email/username or password');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or
-            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-              start a free trial
-            </a>
-          </p>
+    <div className="page-container">
+      <div className="auth-split-layout">
+        <div className="auth-split-left">
+          <div className="auth-circle-1"></div>
+          <div className="auth-circle-2"></div>
+          <div className="auth-circle-3"></div>
+
+          <h1 className="font-display" style={{ fontSize: '48px', marginBottom: '16px', lineHeight: '1.1' }}>
+            Land your dream job.<br />
+            Beat every ATS filter.
+          </h1>
+          
+          <ul className="auth-feature-list">
+            <li className="auth-feature-item">
+              <div className="auth-feature-icon">✦</div>
+              <div>
+                <div className="auth-feature-text-title">AI-powered resume rewriting</div>
+                <div className="auth-feature-text-sub">Intelligent keyword integration without stuffing</div>
+              </div>
+            </li>
+            <li className="auth-feature-item">
+              <div className="auth-feature-icon">✦</div>
+              <div>
+                <div className="auth-feature-text-title">Weighted ATS score analysis</div>
+                <div className="auth-feature-text-sub">Section-by-section breakdown of your match rate</div>
+              </div>
+            </li>
+            <li className="auth-feature-item">
+              <div className="auth-feature-icon">✦</div>
+              <div>
+                <div className="auth-feature-text-title">Professional LaTeX PDF export</div>
+                <div className="auth-feature-text-sub">Clean, machine-readable formatting every time</div>
+              </div>
+            </li>
+          </ul>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <input type="hidden" name="remember" value="true" />
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full appearance-none rounded-none rounded-t-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:shadow-outline-indigo sm:text-sm"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="relative block w-full appearance-none rounded-none rounded-b-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-indigo-500 focus:outline-none focus:shadow-outline-indigo sm:text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+
+        <div className="auth-split-right">
+          <div className="auth-card-wrapper">
+            <div className="auth-card-inner">
+              <h2 className="font-display">Welcome back</h2>
+              <p>Sign in to continue optimizing</p>
+
+              <form onSubmit={handleSubmit}>
+                <div className="auth-input-group">
+                  <label htmlFor="email-address">Email or Username</label>
+                  <input
+                    id="email-address"
+                    name="email"
+                    type="text"
+                    className="auth-input-field"
+                    autoComplete="username"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="auth-input-group">
+                  <label htmlFor="password">Password</label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    className="auth-input-field"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    <input type="checkbox" style={{ width: 'auto', height: 'auto' }} />
+                    Remember me
+                  </label>
+                  <a href="#" className="link-text" style={{ fontSize: '14px', color: 'var(--accent)' }}>Forgot password?</a>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="auth-btn-primary"
+                >
+                  {loading ? (
+                    <>
+                      <div className="spin-ring"></div>
+                      Signing in...
+                    </>
+                  ) : 'Sign in'}
+                </button>
+              </form>
+
+              {error && (
+                <div className="auth-error-badge">
+                  ✕ {error}
+                </div>
+              )}
+
+              <div style={{ marginTop: '32px', textAlign: 'center' }} className="link-text">
+                Don't have an account? <a href="/register">Sign up →</a>
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Forgot password?
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:offset-2"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-        </form>
-
-        {error && (
-          <p className="mt-4 text-sm text-red-600">
-            {error}
-          </p>
-        )}
-
-        <p className="mt-8 text-center text-sm text-gray-500">
-          Don’t have an account?{' '}
-          <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Sign up
-          </a>
-        </p>
+        </div>
       </div>
     </div>
   );

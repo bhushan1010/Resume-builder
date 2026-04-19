@@ -1,144 +1,162 @@
-import React from 'react';
+import React, { useState } from 'react';
+import './RewrittenPreview.css';
 
 const RewrittenPreview = ({ resumeData }) => {
+  const [copied, setCopied] = useState(false);
+
   if (!resumeData) return null;
 
+  const handleCopy = () => {
+    // Basic text format copy could be extended, but stringify works over no copy
+    navigator.clipboard.writeText(JSON.stringify(resumeData, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const SectionContainer = ({ title, children }) => (
+    <div className="preview-section-card animate-in" style={{ animationDelay: '100ms' }}>
+      <h3 className="preview-section-title">
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+
+  const BulletList = ({ bullets }) => {
+    if (!bullets || bullets.length === 0) return null;
+    return (
+      <ul className="preview-bullet-list">
+        {bullets.map((bullet, idx) => (
+          <li key={idx} className="preview-bullet-item">
+            <span className="preview-bullet-icon">•</span>
+            <span>{bullet}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Summary Section */}
+    <div className="preview-container">
+      <div className="preview-header">
+        <button onClick={handleCopy} className="copy-btn">
+          {copied ? (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy JSON
+            </>
+          )}
+        </button>
+      </div>
+
       {resumeData.summary && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Summary</h3>
-          <p className="text-gray-700">{resumeData.summary}</p>
-        </div>
+        <SectionContainer title="Summary">
+          <p className="preview-text">{resumeData.summary}</p>
+        </SectionContainer>
       )}
 
-      {/* Education Section */}
-      {resumeData.education.length > 0 && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Education</h3>
-          <div className="space-y-4">
+      {resumeData.education && resumeData.education.length > 0 && (
+        <SectionContainer title="Education">
+          <div>
             {resumeData.education.map((edu, index) => (
-              <div key={index} className="flex items-start">
-                <div className="flex-shrink-0 w-20 text-sm text-gray-500">
+              <div key={index} className="preview-entry">
+                <div className="preview-entry-duration">
                   {edu.duration}
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium">{edu.institution}</h4>
-                  <p className="text-sm text-gray-600">{edu.degree}</p>
+                <div className="preview-entry-content">
+                  <h4 className="preview-entry-title">{edu.institution}</h4>
+                  <p className="preview-entry-subtitle">{edu.degree}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </SectionContainer>
       )}
 
-      {/* Projects Section */}
-      {resumeData.projects.length > 0 && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Projects</h3>
-          <div className="space-y-4">
+      {resumeData.projects && resumeData.projects.length > 0 && (
+        <SectionContainer title="Projects">
+          <div>
             {resumeData.projects.map((project, index) => (
-              <div key={index}>
-                <h4 className="font-medium mb-1">
-                  <a 
-                    href={project.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:underline"
-                  >
-                    {project.name}
-                  </a>
-                </h4>
-                <p className="text-sm text-gray-500">{project.duration}</p>
-                {project.bullets.length > 0 && (
-                  <ul className="list-disc list-inside space-y-1 mt-2 text-sm text-gray-700">
-                    {project.bullets.map((bullet, bulletIndex) => (
-                      <li key={bulletIndex}>{bullet}</li>
-                    ))}
-                  </ul>
-                )}
+              <div key={index} className="preview-entry" style={{ flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <h4 className="preview-entry-title">
+                    <a href={project.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
+                      {project.name}
+                    </a>
+                  </h4>
+                  <span className="preview-entry-duration" style={{ width: 'auto', textAlign: 'right' }}>{project.duration}</span>
+                </div>
+                <BulletList bullets={project.bullets} />
               </div>
             ))}
           </div>
-        </div>
+        </SectionContainer>
       )}
 
-      {/* Internship/Experience Section */}
-      {resumeData.internship.length > 0 && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Internship & Experience</h3>
-          <div className="space-y-4">
+      {resumeData.internship && resumeData.internship.length > 0 && (
+        <SectionContainer title="Experience">
+          <div>
             {resumeData.internship.map((exp, index) => (
-              <div key={index}>
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 w-20 text-sm text-gray-500">
-                    {exp.duration}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">
-                      <a 
-                        href={exp.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-indigo-600 hover:underline"
-                      >
-                        {exp.company}
-                      </a>
-                    </h4>
-                    <p className="text-sm text-gray-600">{exp.role}</p>
-                    {exp.bullets.length > 0 && (
-                      <ul className="list-disc list-inside space-y-1 mt-2 text-sm text-gray-700">
-                        {exp.bullets.map((bullet, bulletIndex) => (
-                          <li key={bulletIndex}>{bullet}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+              <div key={index} className="preview-entry">
+                <div className="preview-entry-duration">
+                  {exp.duration}
+                </div>
+                <div className="preview-entry-content">
+                  <h4 className="preview-entry-title">
+                    <a href={exp.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
+                      {exp.company}
+                    </a>
+                  </h4>
+                  <p className="preview-entry-subtitle">{exp.role}</p>
+                  <BulletList bullets={exp.bullets} />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </SectionContainer>
       )}
 
-      {/* Skills Section */}
-      {resumeData.skills.length > 0 && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Skills</h3>
-          <div className="space-y-3">
+      {resumeData.skills && resumeData.skills.length > 0 && (
+        <SectionContainer title="Skills">
+          <div>
             {resumeData.skills.map((skill, index) => (
-              <div key={index} className="flex">
-                <span className="flex-shrink-0 font-medium w-32">
-                  {skill.category}:
-                </span>
-                <span className="flex-1">{skill.items}</span>
+              <div key={index} className="preview-skill-row">
+                <div className="preview-skill-cat">
+                  {skill.category}
+                </div>
+                <div className="preview-skill-items">{skill.items}</div>
               </div>
             ))}
           </div>
-        </div>
+        </SectionContainer>
       )}
 
-      {/* Certifications Section */}
-      {resumeData.certifications.length > 0 && (
-        <div className="border-l-4 border-indigo-500 pl-4">
-          <h3 className="text-lg font-semibold mb-2">Certifications</h3>
-          <ul className="list-disc list-inside space-y-2">
+      {resumeData.certifications && resumeData.certifications.length > 0 && (
+        <SectionContainer title="Certifications">
+          <div>
             {resumeData.certifications.map((cert, index) => (
-              <li key={index}>
-                <a 
-                  href={cert.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 hover:underline"
-                >
+              <div key={index} className="preview-cert-row">
+                <span className="preview-bullet-icon">•</span>
+                <a href={cert.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)', fontWeight: 500 }}>
                   {cert.name}
                 </a>
-                <span className="ml-2 text-sm text-gray-500">({cert.duration})</span>
-              </li>
+                <span className="preview-entry-duration" style={{ width: 'auto', marginLeft: '8px' }}>
+                  ({cert.duration})
+                </span>
+              </div>
             ))}
-          </ul>
-        </div>
+          </div>
+        </SectionContainer>
       )}
     </div>
   );

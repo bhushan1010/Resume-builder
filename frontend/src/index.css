@@ -1,0 +1,128 @@
+:root {
+  --bg-base: #0a0a0f;
+  --bg-surface: #111118;
+  --bg-elevated: #1a1a24;
+  --border: #2a2a3a;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.15);
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #475569;
+  --accent-purple: #8b5cf6;
+  --blob-1: rgba(99,102,241,0.07);
+  --blob-2: rgba(139,92,246,0.05);
+  --shimmer-start: rgba(255,255,255,0.0);
+  --shimmer-mid: rgba(255,255,255,0.04);
+  --shimmer-end: rgba(255,255,255,0.0);
+}
+
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+body { 
+  background: var(--bg-base); 
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--blob-1), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: blobFloat 8s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -200px;
+  left: -200px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--blob-2), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: blobFloat 10s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes blobFloat {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 20px) scale(1.05); }
+}
+
+#root, .page-container {
+  position: relative;
+  z-index: 1;
+}
+
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Syne', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+button, a {
+  transition: all 0.15s ease-in-out;
+}
+
+button:active {
+  transform: translateY(1px) !important;
+}
+
+input, textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+.link-text a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.link-text a:hover {
+  text-decoration: underline;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-in {
+  animation: fadeSlideUp 400ms ease forwards;
+  opacity: 0;
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}

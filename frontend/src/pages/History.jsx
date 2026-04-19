@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/client';
+import Navbar from '../components/Navbar';
 import HistoryCard from '../components/HistoryCard';
+import './History.css';
 
 function History() {
   const [history, setHistory] = useState([]);
@@ -23,35 +25,43 @@ function History() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">
-            Resume History
-          </h1>
-          
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-500">Loading history...</p>
-            </div>
-          ) : history.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                You haven't analyzed any resumes yet. 
-                <a href="/dashboard" className="text-indigo-600 hover:underline">
-                  Start now
-                </a>
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {history.map((session) => (
-                <HistoryCard key={session.id} session={session} />
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="page-container">
+      <Navbar />
+      
+      <div className="page-header" style={{ marginBottom: '40px' }}>
+        <h1 className="page-title">Optimization History</h1>
+        <p className="page-subtitle">{history.length} sessions saved</p>
+      </div>
+
+      <div className="history-page-wrapper">
+        {loading ? (
+          <div className="history-loading">
+            <div className="spin-ring" style={{ width: '32px', height: '32px', margin: '0 auto', borderTopColor: 'var(--accent)' }}></div>
+            <p>Loading history...</p>
+          </div>
+        ) : history.length === 0 ? (
+          <div className="history-empty-state animate-in">
+            <svg className="history-empty-icon" width="48" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <p>No sessions yet. Head to the dashboard to get started.</p>
+            <a href="/dashboard" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', width: 'auto', padding: '0 24px' }}>
+              Go to Dashboard
+            </a>
+          </div>
+        ) : (
+          <div className="history-list">
+            {history.map((session, index) => (
+              <div key={session.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-in">
+                <HistoryCard session={session} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

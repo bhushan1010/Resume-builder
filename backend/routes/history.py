@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from .. import models, database
-from ..models import session as session_model
+from database import get_db
+from routes.auth import get_current_user
+import models.session as session_model
 from pydantic import BaseModel
 import json
 
@@ -26,19 +26,13 @@ class SessionDetailResponse(BaseModel):
     section_scores_after: dict
     created_at: str
 
-# Dependency to get current user (simplified)
-def get_current_user_id(token: str = Depends(lambda: "dummy_token")):
-    # In a real implementation, you would verify the JWT token here
-    # For now, returning a dummy user ID
-    return 1
-
 @router.get("/", response_model=list[SessionResponse])
 async def get_history(
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     sessions = db.query(session_model.RewriteSession).filter(
-        session_model.RewriteSession.user_id == user_id
+        session_model.RewriteSession.user_id == current_user.id
     ).order_by(session_model.RewriteSession.created_at.desc()).all()
     
     result = []
@@ -56,12 +50,12 @@ async def get_history(
 @router.get("/{session_id}", response_model=SessionDetailResponse)
 async def get_session_detail(
     session_id: int,
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     session = db.query(session_model.RewriteSession).filter(
         session_model.RewriteSession.id == session_id,
-        session_model.RewriteSession.user_id == user_id
+        session_model.RewriteSession.user_id == current_user.id
     ).first()
     
     if not session:
@@ -82,13 +76,13 @@ async def get_session_detail(
 @router.post("/{session_id}/export")
 async def export_session_pdf(
     session_id: int,
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     # Get session from database
     session = db.query(session_model.RewriteSession).filter(
         session_model.RewriteSession.id == session_id,
-        session_model.RewriteSession.user_id == user_id
+        session_model.RewriteSession.user_id == current_user.id
     ).first()
     
     if not session:

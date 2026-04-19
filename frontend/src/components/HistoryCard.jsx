@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import api from '../api/client';
+import './HistoryCard.css';
 
 const HistoryCard = ({ session }) => {
-  const [expanded, setExpanded] = useState(false);
-
   const handleDownloadPDF = async () => {
     try {
       const response = await api.post(`/history/${session.id}/export`, {}, {
@@ -22,94 +21,54 @@ const HistoryCard = ({ session }) => {
     }
   };
 
+  const getScoreColor = (score) => {
+    if (score < 40) return { bg: 'rgba(239, 68, 68, 0.1)', text: 'var(--accent-red)' };
+    if (score < 70) return { bg: 'rgba(245, 158, 11, 0.1)', text: 'var(--accent-amber)' };
+    return { bg: 'rgba(16, 185, 129, 0.1)', text: 'var(--accent-green)' };
+  };
+
+  const scoreColor = getScoreColor(session.ats_score_after);
+
+  const formattedDate = new Date(session.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const jdSnippet = session.job_description && session.job_description.length > 80 
+    ? session.job_description.substring(0, 80) + '...'
+    : session.job_description || 'No Job Description';
+
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
-      <div className="px-6 py-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">
-              Resume Optimization
-            </h3>
-            <p className="text-sm text-gray-500">
-              {new Date(session.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-indigo-500 hover:text-indigo-700"
-          >
-            {expanded ? '▲' : '▼'}
-          </button>
-        </div>
-        
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-gray-700">
-              JD: {session.job_description}
-            </p>
-            <div className="flex space-x-3">
-              <span className="px-2 py-1 text-xs rounded-full 
-                ${session.ats_score_before < 40 ? 'bg-red-100 text-red-800' 
-                  : session.ats_score_before < 70 ? 'bg-amber-100 text-amber-800'
-                  : 'bg-green-100 text-green-800'}">
-                Before: {session.ats_score_before}%
-              </span>
-              <span className="px-2 py-1 text-xs rounded-full 
-                ${session.ats_score_after < 40 ? 'bg-red-100 text-red-800' 
-                  : session.ats_score_after < 70 ? 'bg-amber-100 text-amber-800'
-                  : 'bg-green-100 text-green-800'}">
-                After: {session.ats_score_after}%
-              </span>
-            </div>
-          </div>
-          
-          <button
-            onClick={handleDownloadPDF}
-            className="mt-2 sm:mt-0 px-3 py-1 text-xs font-medium text-white 
-              bg-indigo-600 hover:bg-indigo-700 rounded"
-          >
-            Download PDF
-          </button>
-        </div>
+    <div className="history-card animate-in">
+      <div className="history-card-date">
+        {formattedDate}
       </div>
       
-      {expanded && (
-        <div className="border-t border-gray-200">
-          <div className="px-6 py-4">
-            <h3 className="text-lg font-medium mb-3 text-gray-900">
-              Rewritten Resume Preview
-            </h3>
-            <div className="space-y-4">
-              {/* Summary */}
-              <div>
-                <h4 className="font-medium mb-1">Summary</h4>
-                <p className="text-gray-700">
-                  {/* This would normally show the rewritten summary,
-                      but we don't have it in the history session data.
-                      In a real app, we'd fetch the full session details */}
-                  [Summary preview would appear here]
-                </p>
-              </div>
-              
-              {/* Skills */}
-              <div>
-                <h4 className="font-medium mb-1">Skills</h4>
-                <p className="text-gray-700">
-                  [Skills preview would appear here]
-                </p>
-              </div>
-              
-              {/* Experience */}
-              <div>
-                <h4 className="font-medium mb-1">Experience</h4>
-                <p className="text-gray-700">
-                  [Experience preview would appear here]
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="history-card-jd">
+        {jdSnippet}
+      </div>
+      
+      <div className="history-card-actions">
+        <div 
+          className="history-card-score"
+          style={{ background: scoreColor.bg, color: scoreColor.text }}
+        >
+          {session.ats_score_before}% → {session.ats_score_after}%
         </div>
-      )}
+        
+        <button
+          onClick={handleDownloadPDF}
+          title="Download PDF"
+          className="history-card-download-btn"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+      </div>
     </div>
   );
 };

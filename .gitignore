@@ -3,3 +3,5 @@ backend/.env
 /backend/models/__pycache__
 /backend/__pycache__
 /frontend/node_modules
+/backend/services/__pycache__
+/backend/routes/__pycache__

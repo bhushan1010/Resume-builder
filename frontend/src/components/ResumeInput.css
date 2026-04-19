@@ -1,0 +1,422 @@
+.resume-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Tab Switcher */
+.tab-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.3);
+}
+
+.tab-btn:hover:not(.active) {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* PDF Drop Zone */
+.pdf-drop-zone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 48px 24px;
+  background: var(--bg-surface);
+  transition: all 200ms ease;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* IDLE State */
+.pdf-drop-zone.idle {
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+.pdf-drop-zone.idle .upload-icon {
+  color: var(--text-tertiary);
+}
+
+.pdf-drop-zone.idle .primary-text {
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 16px 0 4px 0;
+}
+
+.pdf-drop-zone.idle .secondary-text {
+  color: var(--text-tertiary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  margin: 0 0 8px 0;
+}
+
+.pdf-drop-zone.idle .constraint-text {
+  color: var(--text-tertiary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+}
+
+/* DRAG OVER State */
+.pdf-drop-zone.dragover {
+  border: 2px dashed var(--accent);
+  background: var(--accent-glow);
+  transform: scale(1.01);
+}
+
+.pdf-drop-zone.dragover .upload-icon {
+  color: var(--accent);
+}
+
+.pdf-drop-zone.dragover .primary-text {
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  margin: 16px 0 4px 0;
+}
+
+/* UPLOADING State */
+.pdf-drop-zone.uploading {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  transform: none;
+}
+
+.pdf-drop-zone.uploading .spinner-ring {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px auto;
+}
+
+.pdf-drop-zone.uploading .uploading-text {
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+
+.pdf-drop-zone.uploading .uploading-subtext {
+  color: var(--text-tertiary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+}
+
+/* SUCCESS State */
+.pdf-drop-zone.success {
+  border: 1px solid var(--accent-green);
+  background: rgba(16,185,129,0.05);
+}
+
+.pdf-drop-zone.success .file-icon {
+  color: var(--accent-green);
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 12px auto;
+}
+
+.pdf-drop-zone.success .file-info {
+  text-align: center;
+  margin: 0 auto 16px auto;
+  max-width: 80%;
+}
+
+.pdf-drop-zone.success .filename {
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-drop-zone.success .file-size {
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+
+.pdf-drop-zone.success .remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 20px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 150ms ease;
+}
+
+.pdf-drop-zone.success .remove-btn:hover {
+  color: var(--accent-red);
+  background: rgba(239,68,68,0.1);
+}
+
+/* Confidence Pill */
+.confidence-pill {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border-radius: 100px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.confidence-pill .confidence-icon {
+  font-size: 14px;
+}
+
+.confidence-pill .confidence-text {
+  font-weight: 500;
+}
+
+/* High Confidence */
+.confidence-pill.high {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: var(--accent-green);
+}
+
+/* Medium Confidence */
+.confidence-pill.medium {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  color: var(--accent-amber);
+}
+
+/* Low Confidence */
+.confidence-pill.low {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: var(--accent-red);
+}
+
+/* ERROR State */
+.pdf-drop-zone.error {
+  border: 1px solid var(--accent-red);
+  background: rgba(239,68,68,0.05);
+}
+
+.pdf-drop-zone.error .error-icon {
+  color: var(--accent-red);
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 12px auto;
+}
+
+.pdf-drop-zone.error .error-message {
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+
+.pdf-drop-zone.error .error-subtext {
+  color: var(--text-secondary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+}
+
+/* Paste from PDF Banner */
+.pasted-from-pdf-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.3);
+  color: var(--accent);
+  padding: 8px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  margin: 0 0 16px 0;
+  width: fit-content;
+}
+
+/* Input Section Styles (keeping existing styles but adjusting for new layout) */
+.input-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.input-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.input-icon {
+  color: var(--accent);
+}
+
+.input-textarea {
+  width: 100%;
+  background: #0a0a0f;
+  border: none;
+  padding: 18px;
+  min-height: 240px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 200ms ease;
+}
+
+.input-textarea:focus {
+  outline: none;
+  background: rgba(99,102,241,0.02);
+  box-shadow: inset 0 0 0 1px var(--accent), inset 0 0 20px var(--accent-glow);
+}
+
+.input-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Action Buttons (keeping existing styles) */
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.btn-analyze {
+  flex: 1;
+  height: 52px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 150ms ease;
+}
+
+.btn-analyze:hover:not(:disabled) {
+  background: var(--accent-glow);
+  box-shadow: 0 0 15px var(--accent-glow);
+  border-color: var(--accent-purple);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.btn-analyze:disabled {
+  border-color: var(--border);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.btn-rewrite {
+  flex: 1;
+  height: 52px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 150ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-rewrite::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
+
+.btn-rewrite:hover:not(:disabled) {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99,102,241,0.3);
+}
+
+.btn-rewrite:disabled {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.btn-rewrite:disabled::before {
+  display: none;
+}
+
+/* Animation for spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

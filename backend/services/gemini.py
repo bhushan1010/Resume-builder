@@ -1,14 +1,62 @@
 import os
 import json
 import re
+import time
 import google.generativeai as genai
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 load_dotenv()
 
-# Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Import key manager
+from .key_manager import key_manager
+
+def call_gemini_with_retry(prompt_content, max_retries: int = 3):
+    """
+    Call Gemini API with automatic key rotation and retry.
+    prompt_content can be str or list (for vision calls)
+    """
+    last_error = None
+
+    for attempt in range(max_retries):
+        key = key_manager.get_available_key()
+
+        if key is None:
+            raise HTTPException(
+                status_code=503,
+                detail="All API keys are currently rate limited. Please try again in about a minute."
+            )
+
+        try:
+            # Configure the model with the current key
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt_content)
+            return response
+
+        except Exception as e:
+            last_error = e
+            error_str = str(e).lower()
+
+            if "429" in str(e) or "quota" in error_str or "rate" in error_str:
+                key_manager.mark_rate_limited(key)
+                wait_seconds = (2 ** attempt)  # 1s, 2s, 4s
+                time.sleep(wait_seconds)
+                continue
+
+            elif "daily" in error_str or "per day" in error_str:
+                key_manager.mark_daily_exhausted(key)
+                continue
+
+            else:
+                # Non-rate-limit error, don't retry
+                raise
+
+    raise HTTPException(
+        status_code=503,
+        detail=f"Failed after {max_retries} attempts. Last error: {str(last_error)}"
+    )
+
 
 def parse_resume(resume_text: str) -> dict:
     """
@@ -19,7 +67,7 @@ def parse_resume(resume_text: str) -> dict:
     exactly matching the schema provided. Return ONLY valid JSON, no markdown, 
     no explanation.
     """
-    
+
     schema = {
         "header": {
             "name": "",
@@ -67,21 +115,21 @@ def parse_resume(resume_text: str) -> dict:
             }
         ]
     }
-    
+
     user_prompt = f"""
     Parse this resume text:
     {resume_text}
-    
+
     Return ONLY the JSON matching this schema:
     {json.dumps(schema, indent=2)}
     """
-    
+
     try:
-        response = model.generate_content([system_instruction, user_prompt])
+        response = call_gemini_with_retry([system_instruction, user_prompt])
         # Clean response to extract JSON
         cleaned_response = re.sub(r'```json|```', '', response.text).strip()
         parsed_data = json.loads(cleaned_response)
-        
+
         # Ensure all required fields exist with proper types
         result = {
             "header": {
@@ -98,7 +146,7 @@ def parse_resume(resume_text: str) -> dict:
             "skills": parsed_data.get("skills", []),
             "certifications": parsed_data.get("certifications", [])
         }
-        
+
         return result
     except Exception as e:
         # Return empty structure on error
@@ -283,10 +331,10 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     system_instruction = f"""
     You are an expert ATS resume writer. Rewrite the given resume section to maximize 
     alignment with the job description.
-    
+
     STRICT RULES:
     1. Never change any fact, number, percentage, date, URL, company name, 
-       institution name, or project name
+        institution name, or project name
     2. The locked facts below must appear exactly as provided
     3. Inject relevant keywords from the JD naturally
     4. Keep bullet points concise (1-2 lines each)
@@ -294,20 +342,19 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     6. Return ONLY the rewritten section as valid JSON
     7. Do not add experience or achievements that don't exist
     8. Preserve the original structure (number of bullets, number of entries)
-    
+
     LOCKED FACTS (never modify these):
     {json.dumps(locked_facts, indent=2)}
-    
+
     JOB DESCRIPTION:
     {jd}
-    
+
     SECTION TO REWRITE ({section_name}):
     {section_json}
     """
-    
+
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(system_instruction)
+        response = call_gemini_with_retry(system_instruction)
         # Clean response to extract JSON
         cleaned_response = re.sub(r'```json|```', '', response.text).strip()
         # Validate that it's valid JSON

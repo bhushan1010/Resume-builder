@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from .. import models, database
-from ..services import gemini, ats_scorer, pdf_generator
-from ..models import session as session_model
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from database import get_db
+from routes.auth import get_current_user
+import models.user as user_model
+from services import gemini, ats_scorer, pdf_generator, pdf_extractor
+import models.session as session_model
 from pydantic import BaseModel
 import json
 
@@ -29,17 +30,11 @@ class RewriteResponse(BaseModel):
     section_scores_after: dict
     session_id: int
 
-# Dependency to get current user (simplified - in production you'd verify JWT)
-def get_current_user_id(token: str = Depends(lambda: "dummy_token")):
-    # In a real implementation, you would verify the JWT token here
-    # For now, returning a dummy user ID
-    return 1
-
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_resume(
     request: AnalyzeRequest,
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     # Score the resume
     result = ats_scorer.score(request.resume_text, request.job_description)
@@ -52,8 +47,8 @@ async def analyze_resume(
 @router.post("/rewrite", response_model=RewriteResponse)
 async def rewrite_resume(
     request: RewriteRequest,
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     # Score original resume
     original_score = ats_scorer.score(request.resume_text, request.job_description)
@@ -70,7 +65,7 @@ async def rewrite_resume(
     
     # Save session to database
     db_session = session_model.RewriteSession(
-        user_id=user_id,
+        user_id=current_user.id,
         original_resume=request.resume_text,
         job_description=request.job_description,
         rewritten_resume_json=json.dumps(rewritten_resume),
@@ -95,13 +90,13 @@ async def rewrite_resume(
 @router.post("/export/{session_id}")
 async def export_resume_pdf(
     session_id: int,
-    db: Session = Depends(database.get_db),
-    user_id: int = Depends(get_current_user_id)
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
 ):
     # Get session from database
     session = db.query(session_model.RewriteSession).filter(
         session_model.RewriteSession.id == session_id,
-        session_model.RewriteSession.user_id == user_id
+        session_model.RewriteSession.user_id == current_user.id
     ).first()
     
     if not session:
@@ -120,3 +115,22 @@ async def export_resume_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=resume_{session_id}.pdf"}
     )
+
+
+@router.post("/extract-pdf")
+async def extract_resume_from_pdf_endpoint(
+    pdf_file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: user_model.User = Depends(get_current_user)
+):
+    """
+    Extract text from uploaded PDF resume.
+    Returns extraction result with confidence assessment.
+    """
+    # Read file bytes
+    pdf_bytes = await pdf_file.read()
+    
+    # Extract text using hybrid approach
+    result = pdf_extractor.extract_resume_from_pdf(pdf_bytes)
+    
+    return result

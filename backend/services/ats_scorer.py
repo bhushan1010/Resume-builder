@@ -61,7 +61,7 @@ def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]
     # Common tech terms that indicate high importance
     tech_terms = [
         # Programming languages
-        "python", "java", "javascript", "typescript", "c\\+\\+", "c#", "ruby", "php", "swift", "kotlin",
+        "python", "java", "javascript", "typescript", "c\+\+", "c#", "ruby", "php", "swift", "kotlin",
         "go", "rust", "scala", "r", "matlab",
         # Web technologies
         "html", "css", "react", "angular", "vue", "nodejs", "express", "django", "flask", "spring",
