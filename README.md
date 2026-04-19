@@ -25,6 +25,62 @@ The ATS Resume Rewriter analyzes your resume against a job description, provides
 - History tracking of all resume optimization sessions
 - Responsive design for mobile and desktop
 
+## Project Structure
+
+```
+resume-builder/
+├── backend/
+│   ├── main.py                 # FastAPI application entry point
+│   ├── database.py             # Database configuration
+│   ├── requirements.txt        # Python dependencies
+│   ├── Dockerfile              # Docker configuration
+│   ├── .env                    # Environment variables
+│   ├── resume_rewriter.db      # SQLite database
+│   ├── models/                 # SQLAlchemy models
+│   │   ├── user.py             # User model
+│   │   └── session.py          # Session model
+│   ├── routes/                 # API route handlers
+│   │   ├── auth.py             # Authentication routes
+│   │   ├── resume.py           # Resume processing routes
+│   │   ├── history.py          # History routes
+│   │   └── status.py           # Health check routes
+│   ├── services/               # Business logic services
+│   │   ├── ats_scorer.py       # ATS scoring logic
+│   │   ├── gemini.py           # Gemini AI integration
+│   │   ├── key_manager.py      # API key management
+│   │   ├── latex_escape.py     # LaTeX text escaping
+│   │   ├── pdf_extractor.py    # PDF text extraction
+│   │   └── pdf_generator.py    # PDF generation service
+│   └── templates/              # Jinja2 templates
+│       ├── resume.tex.j2       # LaTeX resume template
+│       └── warmup.tex          # LaTeX warmup file
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx             # Main React app with routing
+│   │   ├── main.jsx            # React entry point
+│   │   ├── index.css           # Global styles
+│   │   ├── api/                # API service layer
+│   │   │   └── client.js       # HTTP client configuration
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── Navbar.jsx      # Navigation bar
+│   │   │   ├── ResumeInput.jsx # Resume input form
+│   │   │   ├── RewrittenPreview.jsx # Rewritten resume preview
+│   │   │   ├── ATSScoreCard.jsx # ATS score display
+│   │   │   └── HistoryCard.jsx # History item card
+│   │   └── pages/              # Page components
+│   │       ├── Dashboard.jsx   # Main resume processing page
+│   │       ├── History.jsx     # Session history page
+│   │       ├── Login.jsx       # Login page
+│   │       └── Register.jsx    # Registration page
+│   ├── public/
+│   │   └── index.html          # HTML template
+│   ├── package.json            # Frontend dependencies
+│   ├── vite.config.js          # Vite configuration
+│   ├── vercel.json             # Vercel deployment config
+│   └── .env                    # Frontend environment variables
+└── README.md                   # This file
+```
+
 ## Local Development Setup
 
 ### Prerequisites
@@ -38,14 +94,17 @@ The ATS Resume Rewriter analyzes your resume against a job description, provides
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd resume-rewriter
+   cd resume-builder
    ```
 
 2. Set up the backend:
    ```bash
    cd backend
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   # On Windows:
+   venv\Scripts\activate
+   # On Unix/MacOS:
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
 
@@ -58,7 +117,7 @@ The ATS Resume Rewriter analyzes your resume against a job description, provides
 
 4. Initialize the database:
    ```bash
-   python -c "from database import Base, engine; from import models; Base.metadata.create_all(bind=engine)"
+   python -c "from database import Base, engine; import models; Base.metadata.create_all(bind=engine)"
    ```
 
 5. Start the backend server:
@@ -89,14 +148,14 @@ The application will be available at `http://localhost:5173`.
 ## Environment Variables
 
 ### Backend (.env)
-```
+```env
 GEMINI_API_KEY=your_gemini_api_key_here
 JWT_SECRET=your_secret_key_here
 DATABASE_URL=sqlite:///./resume_rewriter.db
 ```
 
 ### Frontend (.env)
-```
+```env
 VITE_API_URL=https://your-render-backend-url.onrender.com
 ```
 
@@ -149,30 +208,30 @@ VITE_API_URL=https://your-render-backend-url.onrender.com
 │   (React/Vite)  │◄──►│   (FastAPI)      │◄──►│ (Gemini, ATS,    │
 │                 │    │                  │    │  PDF Generator)  │
 └─────────────────┘    └──────────────────┘    └──────────────────┘
-          │                        │                        │
-          ▼                        ▼                        ▼
-    ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-    │   User Interface│    │   API Endpoints  │    │   Business Logic │
-    │                 │    │                  │    │                  │
-    └─────────────────┘    └──────────────────┘    └──────────────────┘
-          │                        │                        │
-          ▼                        ▼                        ▼
-    ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-    │   State Mgmt    │    │   Routing        │    │   AI Processing  │
-    │   (React Hooks) │    │                  │    │   (Gemini)       │
-    └─────────────────┘    └──────────────────┘    └──────────────────┘
-          │                        │                        │
-          ▼                        ▼                        ▼
-    ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-    │   Components    │    │   Controllers    │    │   Scoring Engine │
-    │   (UI Elements) │    │                  │    │   (Keyword-based)│
-    └─────────────────┘    └──────────────────┘    └──────────────────┘
-          │                        │                        │
-          ▼                        ▼                        ▼
-    ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-    │   Local Storage │    │   Database       │    │   LaTeX Engine   │
-    │   (JWT Token)   │    │   (SQLite)       │◄──►│   (Tectonic)     │
-    └─────────────────┘    └──────────────────┘    └──────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   User Interface│    │   API Endpoints  │    │   Business Logic │
+│                 │    │                  │    │                  │
+└─────────────────┘    └──────────────────┘    └──────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   State Mgmt    │    │   Routing        │    │   AI Processing  │
+│   (React Hooks) │    │                  │    │   (Gemini)       │
+└─────────────────┘    └──────────────────┘    └──────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   Components    │    │   Controllers    │    │   Scoring Engine │
+│   (UI Elements) │    │                  │    │   (Keyword-based)│
+└─────────────────┘    └──────────────────┘    └──────────────────┘
+        │                        │                        │
+        ▼                        ▼                        ▼
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   Local Storage │    │   Database       │    │   LaTeX Engine   │
+│   (JWT Token)   │    │   (SQLite)       │◄──►│   (Tectonic)     │
+└─────────────────┘    └──────────────────┘    └──────────────────┘
 ```
 
 ## API Endpoints
