@@ -1,0 +1,184 @@
+name: CI/CD — Build, Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ats-resume-rewriter-backend
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Lint & smoke-test the backend
+  # ─────────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Create dummy .env for tests
+        run: |
+          cat > backend/.env <<EOF
+          GEMINI_KEY_1=dummy_key_for_import_test
+          GEMINI_KEY_2=dummy_key_for_import_test
+          GEMINI_KEY_3=dummy_key_for_import_test
+          GEMINI_KEY_4=dummy_key_for_import_test
+          GEMINI_KEY_5=dummy_key_for_import_test
+          JWT_SECRET=test_secret_at_least_32_chars_long_abc
+          DATABASE_URL=sqlite:///./test.db
+          EOF
+
+      - name: Smoke-test imports
+        working-directory: backend
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, '.')
+          from services.key_manager import key_manager;  print('[OK] key_manager')
+          from services import gemini;                   print('[OK] gemini')
+          from services import pdf_extractor;            print('[OK] pdf_extractor')
+          from services import pdf_generator;            print('[OK] pdf_generator')
+          from services import ats_scorer;               print('[OK] ats_scorer')
+          from routes import auth;                       print('[OK] auth routes')
+          from routes import resume;                     print('[OK] resume routes')
+          from routes import history;                    print('[OK] history routes')
+          print(); print('All imports OK')
+          "
+
+      - name: Verify PDF generation
+        working-directory: backend
+        run: |
+          python -c "
+          from services.pdf_generator import generate
+          pdf = generate({
+            'header': {'name': 'Test', 'email': 'a@b.com', 'phone': '', 'linkedin': '', 'github': ''},
+            'summary': 'Test summary.',
+            'education': [], 'projects': [], 'internship': [],
+            'skills': [{'category': 'Lang', 'items': 'Python'}],
+            'certifications': []
+          })
+          assert len(pdf) > 1000, 'PDF too small'
+          print(f'PDF generated OK: {len(pdf)} bytes')
+          "
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Build & push Docker image (only on push to main, not PRs)
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test-backend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 3: Deploy backend to Render (triggers Render deploy hook)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend → Render
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -s -o /dev/null -w "HTTP %{http_code}" \
+            "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo ""
+          echo "Render deploy triggered."
+
+      - name: Wait for Render to come up
+        run: |
+          echo "Waiting 90s for Render to build and start..."
+          sleep 90
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_BACKEND_URL }}/")
+          echo "Health check status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Backend health check returned $STATUS — may still be deploying."
+          fi
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 4: Build & deploy frontend to Vercel
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend → Vercel
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.RENDER_BACKEND_URL }}
+        run: npm run build
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: frontend
+          vercel-args: "--prod"
