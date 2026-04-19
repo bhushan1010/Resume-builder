@@ -2,7 +2,8 @@ import os
 import json
 import re
 import time
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
@@ -32,16 +33,26 @@ def call_gemini_with_retry(
             )
 
         try:
-            # Configure the model with the current key
-            genai.configure(api_key=key)
+            client = genai.Client(api_key=key)
+            
             if system_instruction:
-                model = genai.GenerativeModel(
-                    'gemini-2.5-flash',
+                config = types.GenerateContentConfig(
                     system_instruction=system_instruction
                 )
             else:
-                model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt_content)
+                config = None
+            
+            if config:
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt_content,
+                    config=config
+                )
+            else:
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt_content
+                )
             return response
 
         except Exception as e:

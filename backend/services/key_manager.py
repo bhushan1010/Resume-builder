@@ -2,7 +2,7 @@ import os
 import time
 import threading
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+
 from fastapi import HTTPException
 
 class GeminiKeyManager:
@@ -22,6 +22,8 @@ class GeminiKeyManager:
         self.lock = threading.Lock()
 
     def get_available_key(self) -> Optional[str]:
+        if not self.keys:
+            return None
         with self.lock:
             # Start from current_index and check all keys
             start_index = self.current_index

@@ -4,8 +4,9 @@ sqlalchemy
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-google-generativeai
+google-genai
 jinja2
 python-dotenv
 pydantic[email]
 pymupdf
+reportlab
