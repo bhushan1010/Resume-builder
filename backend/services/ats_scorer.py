@@ -14,6 +14,12 @@ def score(resume_text: str, job_description: str) -> Dict:
     # Step 2: Split resume into sections
     sections = split_resume_into_sections(resume_text)
     
+    # If no sections were detected, score the whole text as one block
+    if all(not v.strip() for v in sections.values()):
+        sections["summary"] = resume_text
+        sections["internship"] = resume_text
+        sections["skills"] = resume_text
+    
     # Step 3: Calculate weighted score per section
     section_scores = {}
     section_weights = {
@@ -84,7 +90,7 @@ def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]
     # Extract tech terms
     jd_lower = job_description.lower()
     for term in tech_terms:
-        if re.search(r'\\b' + term + r'\\b', jd_lower):
+        if re.search(r'\b' + term + r'\b', jd_lower):
             keywords.append((term, 3.0))
     
     # Look for terms near must-have indicators
@@ -96,7 +102,7 @@ def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]
             context = jd_lower[start:start+50]
             # Extract potential tech terms from context
             for term in tech_terms:
-                if re.search(r'\\b' + term + r'\\b', context):
+                if re.search(r'\b' + term + r'\b', context):
                     if (term, 3.0) not in keywords:
                         keywords.append((term, 3.0))
     
@@ -120,7 +126,7 @@ def extract_medium_weight_keywords(job_description: str) -> List[Tuple[str, floa
     jd_lower = job_description.lower()
     
     for term in medium_terms:
-        if re.search(r'\\b' + term + r'\\b', jd_lower):
+        if re.search(r'\b' + term + r'\b', jd_lower):
             keywords.append((term, 2.0))
     
     return keywords
@@ -138,7 +144,7 @@ def extract_low_weight_keywords(job_description: str) -> List[Tuple[str, float]]
     jd_lower = job_description.lower()
     
     for term in low_terms:
-        if re.search(r'\\b' + term + r'\\b', jd_lower):
+        if re.search(r'\b' + term + r'\b', jd_lower):
             keywords.append((term, 1.0))
     
     return keywords
@@ -154,6 +160,36 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
         "certifications": ""
     }
     
+    # Check if the input is actually a JSON string (rewritten resume)
+    try:
+        parsed_json = json.loads(resume_text)
+        if isinstance(parsed_json, dict):
+            # Map JSON to sections directly
+            sections["summary"] = parsed_json.get("summary", "")
+            
+            # Extract lists of objects into text blocks
+            for edu in parsed_json.get("education", []):
+                sections["education"] += f"{edu.get('institution', '')} {edu.get('degree', '')}\n"
+            
+            for proj in parsed_json.get("projects", []):
+                bullets = " ".join(proj.get("bullets", []))
+                sections["projects"] += f"{proj.get('name', '')} {bullets}\n"
+            
+            for exp in parsed_json.get("internship", []):
+                bullets = " ".join(exp.get("bullets", []))
+                sections["internship"] += f"{exp.get('company', '')} {exp.get('role', '')} {bullets}\n"
+            
+            for skill in parsed_json.get("skills", []):
+                sections["skills"] += f"{skill.get('category', '')} {skill.get('items', '')}\n"
+                
+            for cert in parsed_json.get("certifications", []):
+                sections["certifications"] += f"{cert.get('name', '')}\n"
+                
+            return sections
+    except json.JSONDecodeError:
+        # Not a JSON string, proceed with standard text splitting
+        pass
+    
     # Common section headers (case insensitive)
     header_patterns = {
         "summary": [r"summary", r"professional summary", r"profile", r"objective"],
@@ -164,7 +200,7 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
         "certifications": [r"certifications", r"certificates", r"licenses"]
     }
     
-    lines = resume_text.split('\\n')
+    lines = resume_text.split('\n')
     current_section = None
     section_content = []
     
@@ -181,7 +217,7 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
                    re.search(f'^{pattern}$', line_stripped, re.IGNORECASE) and line_stripped.isupper():
                     # Save previous section
                     if current_section and section_content:
-                        sections[current_section] = '\\n'.join(section_content).strip()
+                        sections[current_section] = '\n'.join(section_content).strip()
                     
                     # Start new section
                     current_section = section_name
@@ -196,7 +232,7 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
     
     # Save last section
     if current_section and section_content:
-        sections[current_section] = '\\n'.join(section_content).strip()
+        sections[current_section] = '\n'.join(section_content).strip()
     
     return sections
 
@@ -213,19 +249,19 @@ def calculate_section_score(section_text: str, high_weight: List[Tuple[str, floa
     
     # Score high weight keywords
     for keyword, weight in high_weight:
-        if re.search(r'\\b' + re.escape(keyword) + r'\\b', section_lower):
+        if re.search(r'\b' + re.escape(keyword) + r'\b', section_lower):
             total_score += weight
         max_possible_score += weight
     
     # Score medium weight keywords
     for keyword, weight in medium_weight:
-        if re.search(r'\\b' + re.escape(keyword) + r'\\b', section_lower):
+        if re.search(r'\b' + re.escape(keyword) + r'\b', section_lower):
             total_score += weight
         max_possible_score += weight
     
     # Score low weight keywords
     for keyword, weight in low_weight:
-        if re.search(r'\\b' + re.escape(keyword) + r'\\b', section_lower):
+        if re.search(r'\b' + re.escape(keyword) + r'\b', section_lower):
             total_score += weight
         max_possible_score += weight
     

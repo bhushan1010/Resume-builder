@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from sqlalchemy.orm import Session
 from database import get_db
 from routes.auth import get_current_user
 import models.user as user_model

@@ -4,7 +4,7 @@ import json
 import re
 from typing import Tuple
 from fastapi import HTTPException
-from .gemini import call_gemini_with_retry
+from services.gemini import call_gemini_with_retry
 
 # Constants
 MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024   # 5MB

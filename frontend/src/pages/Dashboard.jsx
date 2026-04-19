@@ -65,6 +65,7 @@ function Dashboard() {
       }));
       setRewrittenResume(response.data.rewritten_json);
       setSessionId(response.data.session_id);
+      setActiveTab('preview');  // auto-switch to show results
       
       loadHistory();
     } catch (error) {
@@ -111,11 +112,11 @@ function Dashboard() {
   let step2State = '';
   let step3State = '';
 
-  if (atsScores.after) {
+  if (atsScores.after !== null && atsScores.after !== undefined) {
     step1State = 'completed';
     step2State = 'completed';
     step3State = 'completed';
-  } else if (atsScores.before) {
+  } else if (atsScores.before !== null && atsScores.before !== undefined) {
     step1State = 'completed';
     step2State = 'completed';
     step3State = 'active';
@@ -170,7 +171,7 @@ function Dashboard() {
             onAnalyze={analyzeResume}
             onRewrite={rewriteResume}
             loading={loading}
-            canRewrite={Boolean(atsScores.before)}
+            canRewrite={atsScores.before !== null && atsScores.before !== undefined}
           />
         </div>
 

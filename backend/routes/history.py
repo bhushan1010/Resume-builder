@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 from database import get_db
 from routes.auth import get_current_user
+import models.user as user_model
 import models.session as session_model
 from pydantic import BaseModel
 import json
@@ -89,7 +91,7 @@ async def export_session_pdf(
         raise HTTPException(status_code=404, detail="Session not found")
     
     # Import here to avoid circular imports
-    from ..services import pdf_generator
+    from services import pdf_generator
     
     # Parse rewritten resume JSON
     rewritten_json = json.loads(session.rewritten_resume_json)

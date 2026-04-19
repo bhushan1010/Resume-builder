@@ -9,9 +9,13 @@ from fastapi import HTTPException
 load_dotenv()
 
 # Import key manager
-from .key_manager import key_manager
+from services.key_manager import key_manager
 
-def call_gemini_with_retry(prompt_content, max_retries: int = 3):
+def call_gemini_with_retry(
+    prompt_content, 
+    max_retries: int = 3,
+    system_instruction: str = None
+):
     """
     Call Gemini API with automatic key rotation and retry.
     prompt_content can be str or list (for vision calls)
@@ -30,7 +34,13 @@ def call_gemini_with_retry(prompt_content, max_retries: int = 3):
         try:
             # Configure the model with the current key
             genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            if system_instruction:
+                model = genai.GenerativeModel(
+                    'gemini-2.5-flash',
+                    system_instruction=system_instruction
+                )
+            else:
+                model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt_content)
             return response
 
@@ -62,7 +72,7 @@ def parse_resume(resume_text: str) -> dict:
     """
     Parse raw resume text into structured JSON using Gemini.
     """
-    system_instruction = """
+    system_instruction_text = """
     You are a resume parser. Parse the given resume text into structured JSON 
     exactly matching the schema provided. Return ONLY valid JSON, no markdown, 
     no explanation.
@@ -125,7 +135,10 @@ def parse_resume(resume_text: str) -> dict:
     """
 
     try:
-        response = call_gemini_with_retry([system_instruction, user_prompt])
+        response = call_gemini_with_retry(
+            user_prompt,
+            system_instruction=system_instruction_text
+        )
         # Clean response to extract JSON
         cleaned_response = re.sub(r'```json|```', '', response.text).strip()
         parsed_data = json.loads(cleaned_response)
@@ -328,21 +341,25 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     """
     Rewrite a single section using Gemini with strict rules.
     """
-    system_instruction = f"""
+    # System part: the rules only (static, no variables)
+    system_rules = """
     You are an expert ATS resume writer. Rewrite the given resume section to maximize 
     alignment with the job description.
 
     STRICT RULES:
     1. Never change any fact, number, percentage, date, URL, company name, 
-        institution name, or project name
-    2. The locked facts below must appear exactly as provided
+         institution name, or project name
+    2. The locked facts provided must appear exactly as given
     3. Inject relevant keywords from the JD naturally
     4. Keep bullet points concise (1-2 lines each)
     5. Use strong action verbs to start each bullet
     6. Return ONLY the rewritten section as valid JSON
     7. Do not add experience or achievements that don't exist
     8. Preserve the original structure (number of bullets, number of entries)
+    """
 
+    # User part: the dynamic data (facts + jd + section)
+    user_message = f"""
     LOCKED FACTS (never modify these):
     {json.dumps(locked_facts, indent=2)}
 
@@ -354,7 +371,10 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     """
 
     try:
-        response = call_gemini_with_retry(system_instruction)
+        response = call_gemini_with_retry(
+            user_message,
+            system_instruction=system_rules
+        )
         # Clean response to extract JSON
         cleaned_response = re.sub(r'```json|```', '', response.text).strip()
         # Validate that it's valid JSON
