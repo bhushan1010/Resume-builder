@@ -1,5 +1,6 @@
 import io
-from fastapi import HTTPException
+import os
+from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
@@ -8,6 +9,25 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, HRFlowable, ListFlowable, ListItem
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from fastapi import HTTPException
+
+# Outputs folder — all generated PDFs are persisted here
+OUTPUTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "outputs"))
+os.makedirs(OUTPUTS_DIR, exist_ok=True)
+
+
+def save_to_outputs(pdf_bytes: bytes, session_id: int | None = None) -> str:
+    """
+    Save PDF bytes to the outputs folder.
+    Returns the absolute path of the saved file.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prefix = f"session_{session_id}_" if session_id is not None else "resume_"
+    filename = f"{prefix}{timestamp}.pdf"
+    filepath = os.path.join(OUTPUTS_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(pdf_bytes)
+    return filepath
 
 
 def generate(resume_json: dict) -> bytes:
@@ -16,6 +36,7 @@ def generate(resume_json: dict) -> bytes:
     Returns PDF as bytes.
     """
     try:
+
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -224,6 +245,10 @@ def generate(resume_json: dict) -> bytes:
         doc.build(story)
         pdf_bytes = buffer.getvalue()
         buffer.close()
+
+        # Persist to outputs/ folder
+        save_to_outputs(pdf_bytes)
+
         return pdf_bytes
 
     except Exception as e:

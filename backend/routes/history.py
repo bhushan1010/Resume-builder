@@ -96,8 +96,9 @@ async def export_session_pdf(
     # Parse rewritten resume JSON
     rewritten_json = json.loads(session.rewritten_resume_json)
     
-    # Generate PDF
+    # Generate PDF and save to outputs/ folder
     pdf_bytes = pdf_generator.generate(rewritten_json)
+    pdf_generator.save_to_outputs(pdf_bytes, session_id=session_id)
     
     # Return PDF as streaming response
     from fastapi.responses import StreamingResponse

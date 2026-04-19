@@ -5,3 +5,4 @@ backend/.env
 /frontend/node_modules
 /backend/services/__pycache__
 /backend/routes/__pycache__
+/backend/outputs/*.pdf
