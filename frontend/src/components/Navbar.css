@@ -38,6 +38,11 @@
   font-size: 14px;
   color: var(--text-secondary);
   padding: 6px 12px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   transition: all 150ms ease;
   text-decoration: none;
@@ -58,6 +63,11 @@
   background: transparent;
   color: var(--text-secondary);
   padding: 6px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
   font-size: 13px;
   transition: all 150ms ease;

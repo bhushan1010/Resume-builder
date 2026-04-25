@@ -136,6 +136,9 @@ function Dashboard() {
 
   return (
     <div className="page-container">
+      <div className="bg-circle-1"></div>
+      <div className="bg-circle-2"></div>
+      <div className="bg-circle-3"></div>
       <Navbar />
       
       <div className="dashboard-grid">
@@ -196,6 +199,7 @@ function Dashboard() {
               <button 
                 onClick={handleDownloadPDF}
                 disabled={!sessionId || loading.rewrite}
+                aria-label="Export PDF"
                 className="export-btn"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

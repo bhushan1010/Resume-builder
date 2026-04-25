@@ -39,7 +39,7 @@ const RewrittenPreview = ({ resumeData }) => {
   return (
     <div className="preview-container">
       <div className="preview-header">
-        <button onClick={handleCopy} className="copy-btn">
+        <button onClick={handleCopy} aria-label="Copy JSON" className="copy-btn">
           {copied ? (
             <>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -1,7 +1,7 @@
 .history-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px 24px;
   display: flex;
   align-items: center;
@@ -57,8 +57,8 @@
 }
 
 .history-card-download-btn {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-elevated);
