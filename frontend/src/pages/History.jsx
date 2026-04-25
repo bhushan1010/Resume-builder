@@ -26,6 +26,9 @@ function History() {
 
   return (
     <div className="page-container">
+      <div className="bg-circle-1"></div>
+      <div className="bg-circle-2"></div>
+      <div className="bg-circle-3"></div>
       <Navbar />
       
       <div className="page-header" style={{ marginBottom: '40px' }}>

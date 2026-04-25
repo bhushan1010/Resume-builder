@@ -1,10 +1,60 @@
 import re
 from typing import Dict, List, Tuple
 import json
+import numpy as np
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from textblob import TextBlob
+from nltk.corpus import stopwords
+import nltk
+
+# Download required NLTK data (only needed once)
+try:
+    stopwords.words('english')
+except LookupError:
+    nltk.download('stopwords')
+    nltk.download('punkt')
+
+# Initialize sentence transformer model for semantic similarity
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+    return _model
 
 def score(resume_text: str, job_description: str) -> Dict:
     """
-    Score resume against job description using weighted keyword algorithm.
+    Score resume against job description using hybrid approach:
+    - Semantic similarity for overall understanding
+    - Weighted keyword algorithm for specific term matching
+    """
+    # Get semantic similarity score (0-1 range)
+    semantic_score = calculate_semantic_similarity(resume_text, job_description)
+    
+    # Get keyword-based score (existing algorithm)
+    keyword_result = score_keyword_based(resume_text, job_description)
+    
+    # Combine scores: 70% semantic, 30% keyword for better balance
+    combined_overall = (semantic_score * 0.7) + (keyword_result["overall"] * 0.3)
+    
+    # Combine section scores similarly
+    combined_sections = {}
+    for section_name in keyword_result["sections"]:
+        keyword_section_score = keyword_result["sections"][section_name]
+        # For sections, we don't have direct semantic comparison, so weigh more on keywords
+        combined_sections[section_name] = (semantic_score * 0.3) + (keyword_section_score * 0.7)
+    
+    # Convert numpy types to Python native types for JSON serialization
+    return {
+        "overall": round(float(combined_overall), 1),
+        "sections": {k: round(float(v), 1) for k, v in combined_sections.items()}
+    }
+
+def score_keyword_based(resume_text: str, job_description: str) -> Dict:
+    """
+    Original keyword-based scoring algorithm (preserved for hybrid approach).
     """
     # Step 1: Extract keywords from JD into 3 tiers
     high_weight_keywords = extract_high_weight_keywords(job_description)
@@ -58,16 +108,33 @@ def score(resume_text: str, job_description: str) -> Dict:
         overall_score = 0.0
     
     return {
-        "overall": round(overall_score, 1),
-        "sections": {k: round(v, 1) for k, v in section_scores.items()}
+        "overall": round(float(overall_score), 1),
+        "sections": {k: round(float(v), 1) for k, v in section_scores.items()}
     }
 
+def calculate_semantic_similarity(text1: str, text2: str) -> float:
+    """
+    Calculate semantic similarity between two texts using sentence transformers.
+    Returns score in 0-100 range.
+    """
+    try:
+        model = get_model()
+        # Encode both texts
+        embeddings = model.encode([text1, text2])
+        # Calculate cosine similarity
+        similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+        # Convert from 0-1 range to 0-100 range
+        return similarity * 100
+    except Exception as e:
+        # Fallback to keyword-only scoring if semantic fails
+        return 0.0
+
 def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]]:
-    """Extract high weight keywords (3.0) from job description."""
+    """Extract high weight keywords (3.0) from job description using semantic enhancement."""
     # Common tech terms that indicate high importance
     tech_terms = [
         # Programming languages
-        "python", "java", "javascript", "typescript", "c\+\+", "c#", "ruby", "php", "swift", "kotlin",
+        "python", "java", "javascript", "typescript", "c++", "c#", "ruby", "php", "swift", "kotlin",
         "go", "rust", "scala", "r", "matlab",
         # Web technologies
         "html", "css", "react", "angular", "vue", "nodejs", "express", "django", "flask", "spring",
@@ -87,7 +154,7 @@ def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]
     
     keywords = []
     
-    # Extract tech terms
+    # Extract tech terms (exact match)
     jd_lower = job_description.lower()
     for term in tech_terms:
         if re.search(r'\b' + term + r'\b', jd_lower):
@@ -105,6 +172,49 @@ def extract_high_weight_keywords(job_description: str) -> List[Tuple[str, float]
                 if re.search(r'\b' + term + r'\b', context):
                     if (term, 3.0) not in keywords:
                         keywords.append((term, 3.0))
+    
+    # SEMANTIC ENHANCEMENT: Find semantically similar terms
+    # Only run if we have the model available
+    try:
+        model = get_model()
+        # Extract nouns and noun phrases from JD as candidates
+        blob = TextBlob(job_description)
+        noun_phrases = [np.lower().strip() for np in blob.noun_phrases if len(np.split()) <= 3]
+        
+        # Also get individual important words
+        words = [word.lower() for word in blob.words 
+                if len(word) > 3 and word.lower() not in stopwords.words('english')]
+        
+        # Combine candidates
+        candidates = list(set(noun_phrases + words))
+        
+        # Define high-value semantic categories
+        high_value_categories = [
+            "programming", "software development", "data analysis", "machine learning",
+            "cloud computing", "web development", "database management", "devops",
+            "algorithm", "framework", "language", "platform", "application"
+        ]
+        
+        # For each candidate, check semantic similarity to high-value categories
+        if candidates and high_value_categories:
+            # Encode candidates and categories
+            candidate_embeddings = model.encode(candidates)
+            category_embeddings = model.encode(high_value_categories)
+            
+            # Calculate similarity matrix
+            similarity_matrix = cosine_similarity(candidate_embeddings, category_embeddings)
+            
+            # For each candidate, find max similarity to any high-value category
+            for i, candidate in enumerate(candidates):
+                max_similarity = np.max(similarity_matrix[i])
+                # If similarity is high enough (>0.6), add as keyword
+                if max_similarity > 0.6 and candidate not in [kw[0] for kw in keywords]:
+                    # Weight based on similarity score (0.6-1.0 maps to 1.8-3.0)
+                    weight = 1.8 + (max_similarity - 0.6) * (1.2 / 0.4)  # Scale to 1.8-3.0
+                    keywords.append((candidate, min(weight, 3.0)))  # Cap at 3.0
+    except Exception:
+        # If semantic enhancement fails, continue with original keywords
+        pass
     
     return keywords
 

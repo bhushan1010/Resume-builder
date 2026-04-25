@@ -60,6 +60,7 @@ const HistoryCard = ({ session }) => {
         <button
           onClick={handleDownloadPDF}
           title="Download PDF"
+          aria-label="Download PDF"
           className="history-card-download-btn"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -232,7 +232,7 @@ const ResumeInput = ({
                       '5 MB'}
                   </p>
                 </div>
-                <button className="remove-btn" onClick={handleRemoveFile}>×</button>
+                <button className="remove-btn" aria-label="Remove PDF" onClick={handleRemoveFile}>×</button>
               </div>
               
               {/* Confidence Indicator */}

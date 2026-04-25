@@ -11,3 +11,8 @@ pydantic[email]
 pymupdf
 reportlab
 psycopg2-binary
+sentence-transformers
+scikit-learn
+numpy
+textblob
+nltk
