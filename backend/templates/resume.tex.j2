@@ -1,3 +1,4 @@
+{% raw %}
 \documentclass[10pt, letterpaper]{article}
 \usepackage[
     ignoreheadfoot, top=2 cm, bottom=2 cm,
@@ -24,170 +25,160 @@
 \usepackage{lastpage}
 \usepackage{changepage}
 \usepackage{paracol}
-\usepackage{ifthen>
-\usepackage{needspace>
-\usepackage{iftex>
+\usepackage{ifthen}
+\usepackage{needspace}
+\usepackage{iftex}
 \ifPDFTeX
     \input{glyphtounicode}
     \pdfgentounicode=1
     \usepackage[T1]{fontenc}
-    \usepackage[utf8]{inputenc>
-    \usepackage{lmodern>
+    \usepackage[utf8]{inputenc}
+    \usepackage{lmodern}
 \fi
-\usepackage{charter>
+\usepackage{charter}
 \raggedright
-\AtBeginEnvironment{adjustwidth}{\partopsep0pt>
-\pagestyle{empty>
-\setcounter{secnumdepth}{0>
-\setlength{\parindent}{0pt>
-\setlength{\topskip}{0pt>
-\setlength{\columnsep}{0.15cm>
-\pagenumbering{gobble>
-\titleformat{\section>{
+\AtBeginEnvironment{adjustwidth}{\partopsep0pt}
+\pagestyle{empty}
+\setcounter{secnumdepth}{0}
+\setlength{\parindent}{0pt}
+\setlength{\topskip}{0pt}
+\setlength{\columnsep}{0.15cm}
+\pagenumbering{gobble}
+\titleformat{\section}{
   \needspace{4\baselineskip}\bfseries\large
 }{}{0pt}{}[\vspace{1pt}\titlerule]
-\titlespacing{\section}{-1pt}{0.3 cm}{0.2 cm>
-\renewcommand\labelitemi{$\vcenter{\hbox{\small$\bullet$}}$>
+\titlespacing{\section}{-1pt}{0.3 cm}{0.2 cm}
+\renewcommand\labelitemi{$\vcenter{\hbox{\small$\bullet$}}$}
 
 % Define custom environments exactly as in original
-\newenvironment{highlights>
-  \begin{listize}{0}
-  \itemize
-  \endlistize
-  {
-  \enditemize
-  }
+\newenvironment{highlights}{
+  \begin{itemize}[leftmargin=0cm, label={}]
+}{
+  \end{itemize}
+}
 
-\newenvironment{highlightsforbulletentries>
-  \begin{listize}{0}
-  \itemize
-  \endlistize
-  {
-  \enditemize
-  }
+\newenvironment{highlightsforbulletentries}{
+  \begin{itemize}[leftmargin=0.5cm]
+}{
+  \end{itemize}
+}
 
-\newenvironment{onecolentry>
-  \begin{adjustwidth}{0pt}{0pt>
-  \end{adjustwidth>
-  {
-  }
+\newenvironment{onecolentry}{
+  \begin{adjustwidth}{0pt}{0pt}
+}{
+  \end{adjustwidth}
+}
 
-\newenvironment{twocolentry}[1>
-  \begin{minipage}[t]{0.15\linewidth>
+\newenvironment{twocolentry}[1]{
+  \begin{minipage}[t]{0.15\linewidth}
   #1
-  \end{minipage>
-  \begin{minipage}[t]{0.83\linewidth>
-  \end{minipage>
-  {
-  \end{minipage>
-  \end{minipage>
-  }
+  \end{minipage}
+  \begin{minipage}[t]{0.83\linewidth}
+}{
+  \end{minipage}
+}
 
-\newenvironment{threecolentry}[1>
-  \begin{minipage}[t]{0.10\linewidth>
+\newenvironment{threecolentry}[1]{
+  \begin{minipage}[t]{0.10\linewidth}
   #1
-  \end{minipage>
-  \begin{minipage}[t]{0.30\linewidth>
-  \end{minipage>
-  \begin{minipage}[t]{0.58\linewidth>
-  \end{minipage>
-  {
-  \end{minipage>
-  \end{minipage>
-  \end{minipage>
-  }
+  \end{minipage}
+  \begin{minipage}[t]{0.30\linewidth}
+}{
+  \end{minipage}
+}
 
-\newcommand{\AND>{
+\newcommand{\AND}{
   \enspace\smash{\vrule height 0.75ex depth -0.5ex width 0.4pt}\enspace
 }
 
-\newcommand{\hrefWithoutArrow}[2>{
-  \hyperlink[urlcolor]{#1}{#2>
+\newcommand{\hrefWithoutArrow}[2]{
+  \href{#1}{#2}
 }
+{% endraw %}
 
-\begin{document>
+\begin{document}
 
   % HEADER
-  \begin{header>
-    \fontsize{25pt}{25pt}\selectfont {{ header.name }}>
-    \vspace{5pt>
+  \begin{center}
+    \fontsize{25pt}{25pt}\selectfont {{ header.name | latex_escape }}
+    \vspace{5pt}
     \normalsize
     \kern 5.0pt
-    \mbox{\hrefWithoutArrow{mailto:{{ header.email }}{{{ header.email }}}}>
+    \mbox{\hrefWithoutArrow{mailto:{{ header.email | latex_escape }}}{ {{- header.email | latex_escape -}} }}
     \kern 5.0pt \AND \kern 5.0pt
-    \mbox{\hrefWithoutArrow{https://wa.me/{{ header.phone }}{{{ header.phone }}}}>
+    \mbox{\hrefWithoutArrow{https://wa.me/{{ header.phone | latex_escape }}}{ {{- header.phone | latex_escape -}} }}
     \kern 5.0pt \AND \kern 5.0pt
-    \mbox{\hrefWithoutArrow{{{ header.linkedin }}}{linkedin}>
+    \mbox{\hrefWithoutArrow{ {{- header.linkedin | latex_escape -}} }{linkedin}}
     \kern 5.0pt \AND \kern 5.0pt
-    \mbox{\hrefWithoutArrow{{{ header.github }}}{github}}>
-  \end{header>
+    \mbox{\hrefWithoutArrow{ {{- header.github | latex_escape -}} }{github}}
+  \end{center}
 
-  \vspace{5pt - 0.3cm>
+  \vspace{5pt - 0.3cm}
 
-  % SUMMARY
-  \section{Summary>
-  \begin{onecolentry>
-    {{ summary }}
-  \end{onecolentry>
+   % SUMMARY
+    \section{Summary}
+    \begin{onecolentry}
+      {{ summary | latex_escape }}
+    \end{onecolentry}
 
   % EDUCATION
-  \section{Education>
-  {% for edu in education >
-  \begin{twocolentry}{ {{ edu.duration }} >
-    \textbf{ {{ edu.institution }} } – {{ edu.degree }}
-  \end{twocolentry>
-    \vspace{0.2cm>
+  \section{Education}
+  {% for edu in education %}
+  \begin{twocolentry}{ {{ edu.duration | latex_escape }} }
+    \textbf{ {{ edu.institution | latex_escape }} } -- {{ edu.degree | latex_escape }}
+  \end{twocolentry}
+    \vspace{0.2cm}
   {% endfor %}
 
   % PROJECTS
-  \section{Projects>
-  {% for project in projects >
-    \vspace{0.2cm>
-    \begin{twocolentry}{ {{ project.duration }} >
-      \textbf{\href{ {{ project.url }} }{ {{ project.name }} }}
-    \end{twocolentry>
-    \begin{onecolentry>
-      \begin{highlights>
-        {% for bullet in project.bullets >
-        \item {{ bullet }}
+  \section{Projects}
+  {% for project in projects %}
+  \vspace{0.2cm}
+  \begin{twocolentry}{ {{ project.duration | latex_escape }} }
+    \textbf{\href{ {{ project.url | latex_escape }} }{ {{ project.name | latex_escape }} }}
+  \end{twocolentry}
+    \begin{onecolentry}
+      \begin{highlights}
+        {% for bullet in project.bullets %}
+        \item {{ bullet | latex_escape }}
         {% endfor %}
-      \end{highlights>
-    \end{onecolentry>
+      \end{highlights}
+    \end{onecolentry}
   {% endfor %}
 
   % INTERNSHIP
-  \section{Internship>
-  {% for exp in internship >
-    \begin{twocolentry}{ {{ exp.duration }} >
-      \textbf{\href{ {{ exp.url }} }{ {{ exp.company }} }}
-      – {{ exp.role }}
-    \end{twocolentry>
-    \vspace{0.10cm>
-    \begin{onecolentry>
-      \begin{highlights>
-        {% for bullet in exp.bullets >
-        \item {{ bullet }}
+  \section{Internship}
+  {% for exp in internship %}
+  \begin{twocolentry}{ {{ exp.duration | latex_escape }} }
+    \textbf{\href{ {{ exp.url | latex_escape }} }{ {{ exp.company | latex_escape }} }}
+    -- {{ exp.role | latex_escape }}
+  \end{twocolentry}
+    \vspace{0.10cm}
+    \begin{onecolentry}
+      \begin{highlights}
+        {% for bullet in exp.bullets %}
+        \item {{ bullet | latex_escape }}
         {% endfor %}
-      \end{highlights>
-    \end{onecolentry>
+      \end{highlights}
+    \end{onecolentry}
   {% endfor %}
 
   % SKILLS
-  \section{Skills>
-  {% for skill in skills >
-    \begin{onecolentry>
-      \textbf{ {{ skill.category }}: } {{ skill.items }}
-    \end{onecolentry>
-    \vspace{0.2cm>
+  \section{Skills}
+  {% for skill in skills %}
+  \begin{onecolentry}
+    \textbf{ {{ skill['category'] | latex_escape }}: } {{ skill['items'] | latex_escape }}
+  \end{onecolentry}
+    \vspace{0.2cm}
   {% endfor %}
 
   % CERTIFICATIONS
-  \section{Certifications>
-  \begin{highlights>
-    {% for cert in certifications >
-    \item \href{ {{ cert.url }} }{ {{ cert.name }} }
-      ({{ cert.duration }})
+  \section{Certifications}
+  \begin{highlights}
+    {% for cert in certifications %}
+    \item \href{ {{ cert.url | latex_escape }} }{ {{ cert.name | latex_escape }} }
+      ({{ cert.duration | latex_escape }})
     {% endfor %}
-  \end{highlights>
+  \end{highlights}
 
-\end{document>
+\end{document}

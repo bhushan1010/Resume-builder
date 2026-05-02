@@ -9,7 +9,6 @@ jinja2
 python-dotenv
 pydantic[email]
 pymupdf
-reportlab
 psycopg2-binary
 sentence-transformers
 scikit-learn
