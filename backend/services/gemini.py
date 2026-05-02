@@ -2,6 +2,8 @@ import os
 import json
 import re
 import time
+import logging
+import asyncio
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -12,8 +14,14 @@ load_dotenv()
 # Import key manager
 from services.key_manager import key_manager
 
+logger = logging.getLogger(__name__)
+
+# Configurable model name
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+
 def call_gemini_with_retry(
-    prompt_content, 
+    prompt_content,
     max_retries: int = 3,
     system_instruction: str = None
 ):
@@ -34,23 +42,23 @@ def call_gemini_with_retry(
 
         try:
             client = genai.Client(api_key=key)
-            
+
             if system_instruction:
                 config = types.GenerateContentConfig(
                     system_instruction=system_instruction
                 )
             else:
                 config = None
-            
+
             if config:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model=GEMINI_MODEL,
                     contents=prompt_content,
                     config=config
                 )
             else:
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model=GEMINI_MODEL,
                     contents=prompt_content
                 )
             return response
@@ -62,17 +70,24 @@ def call_gemini_with_retry(
             if "429" in str(e) or "quota" in error_str or "rate" in error_str:
                 key_manager.mark_rate_limited(key)
                 wait_seconds = (2 ** attempt)  # 1s, 2s, 4s
+                logger.warning(
+                    f"Rate limited on attempt {attempt + 1}/{max_retries}. "
+                    f"Waiting {wait_seconds}s before retry."
+                )
                 time.sleep(wait_seconds)
                 continue
 
             elif "daily" in error_str or "per day" in error_str:
                 key_manager.mark_daily_exhausted(key)
+                logger.warning(f"Daily quota exhausted for a key. Rotating.")
                 continue
 
             else:
                 # Non-rate-limit error, don't retry
+                logger.error(f"Gemini call failed (non-retriable): {e}", exc_info=True)
                 raise
 
+    logger.error(f"Gemini call failed after {max_retries} attempts. Last error: {last_error}")
     raise HTTPException(
         status_code=503,
         detail=f"Failed after {max_retries} attempts. Last error: {str(last_error)}"
@@ -173,6 +188,7 @@ def parse_resume(resume_text: str) -> dict:
 
         return result
     except Exception as e:
+        logger.error(f"Failed to parse resume: {e}", exc_info=True)
         # Return empty structure on error
         return {
             "header": {"name": "", "email": "", "phone": "", "linkedin": "", "github": ""},
@@ -184,55 +200,51 @@ def parse_resume(resume_text: str) -> dict:
             "certifications": []
         }
 
-def rewrite_resume(parsed_json: dict, jd: str) -> dict:
+
+def rewrite_resume(parsed_json: dict, jd: str, adapted_prompt: str = None) -> dict:
     """
     Rewrite resume sections to maximize alignment with job description.
+    adapted_prompt: Optional learned patterns to incorporate
     """
-    # Extract locked facts
     locked_facts = extract_locked_facts(parsed_json)
-    
-    # Sections to rewrite (in order)
     sections_to_rewrite = ["summary", "skills", "internship", "projects"]
-    
-    # Create a copy to modify
     rewritten_json = parsed_json.copy()
-    
+
     for section_name in sections_to_rewrite:
         try:
             section_content = parsed_json.get(section_name, [])
-            
-            # For summary, it's a string; for others, it's a list
+
             if section_name == "summary":
                 section_json = json.dumps({"summary": section_content}, indent=2)
                 rewritten_section = rewrite_section(
-                    section_json, 
-                    section_name, 
-                    locked_facts, 
-                    jd
+                    section_json,
+                    section_name,
+                    locked_facts,
+                    jd,
+                    adapted_prompt
                 )
-                # Extract just the summary value
                 rewritten_data = json.loads(rewritten_section)
                 rewritten_json[section_name] = rewritten_data.get("summary", section_content)
             else:
-                # For list sections, rewrite each item
                 rewritten_items = []
                 for item in section_content:
                     item_json = json.dumps(item, indent=2)
                     rewritten_item = rewrite_section(
-                        item_json, 
-                        section_name[:-1],  # Singular form (e.g., "internship" -> "internship item")
-                        locked_facts, 
-                        jd
+                        item_json,
+                        section_name[:-1],
+                        locked_facts,
+                        jd,
+                        adapted_prompt
                     )
                     rewritten_item_data = json.loads(rewritten_item)
                     rewritten_items.append(rewritten_item_data)
                 rewritten_json[section_name] = rewritten_items
         except Exception as e:
-            # Keep original content if rewrite fails
+            logger.error(f"Failed to rewrite section '{section_name}': {e}", exc_info=True)
             continue
-    
-    # Header, education, and certifications remain unchanged (factual only)
+
     return rewritten_json
+
 
 def extract_locked_facts(parsed_json: dict) -> dict:
     """
@@ -245,64 +257,64 @@ def extract_locked_facts(parsed_json: dict) -> dict:
         "names": [],
         "contact": []
     }
-    
+
     def extract_from_text(text):
         if not isinstance(text, str):
             return
-        
+
         # Extract URLs
         url_pattern = r'https?://[^\s]+'
         urls = re.findall(url_pattern, text)
         locked_facts["urls"].extend(urls)
-        
-        # Extract dates (various formats)
+
+        # Extract dates (various formats)  -- FIXED: single backslashes for regex
         date_patterns = [
-            r'\\b\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}\\b',
-            r'\\b\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}\\b',
-            r'\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{1,2},? \\d{4}\\b',
-            r'\\b\\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{4}\\b',
-            r'\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{4}\\b',
-            r'\\b\\d{4}\\b'
+            r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b',
+            r'\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b',
+            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4}\b',
+            r'\b\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}\b',
+            r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{4}\b',
+            r'\b\d{4}\b'
         ]
         for pattern in date_patterns:
             dates = re.findall(pattern, text, re.IGNORECASE)
             locked_facts["dates"].extend(dates)
-        
-        # Extract numbers with context (percentages, counts, etc.)
+
+        # Extract numbers with context (percentages, counts, etc.)  -- FIXED
         number_patterns = [
-            r'\\b\\d+\\.?\\d*%\\b',
-            r'\\b\\d+[+,]?\\d*\\s*(?:users?|people|customers?|clients?|projects?|apps?|websites?)\\b',
-            r'\\b\\d+[+,]?\\d*\\s*(?:%|percent)\\b',
-            r'\\b\\d+[+,]?\\d*\\s*(?:million|billion|thousand)\\b'
+            r'\b\d+\.?\d*%\b',
+            r'\b\d+[+,]?\d*\s*(?:users?|people|customers?|clients?|projects?|apps?|websites?)\b',
+            r'\b\d+[+,]?\d*\s*(?:%|percent)\b',
+            r'\b\d+[+,]?\d*\s*(?:million|billion|thousand)\b'
         ]
         for pattern in number_patterns:
             numbers = re.findall(pattern, text, re.IGNORECASE)
             locked_facts["numbers"].extend(numbers)
-        
-        # Extract potential names (capitalized words sequences)
+
+        # Extract potential names (capitalized words sequences)  -- FIXED
         # This is simplistic - in production you'd use NER
-        name_pattern = r'\\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\\b'
+        name_pattern = r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b'
         potential_names = re.findall(name_pattern, text)
         # Filter out common non-names
         common_words = {'The', 'And', 'Or', 'But', 'In', 'On', 'At', 'To', 'For', 'Of', 'With', 'By'}
         names = [name for name in potential_names if name not in common_words and len(name.split()) <= 3]
         locked_facts["names"].extend(names)
-    
+
     # Extract from header
     header = parsed_json.get("header", {})
     for key, value in header.items():
         if value:
             extract_from_text(value)
-    
+
     # Extract from summary
     extract_from_text(parsed_json.get("summary", ""))
-    
+
     # Extract from education
     for edu in parsed_json.get("education", []):
         for key, value in edu.items():
             if value:
                 extract_from_text(value)
-    
+
     # Extract from projects
     for project in parsed_json.get("projects", []):
         for key, value in project.items():
@@ -310,7 +322,7 @@ def extract_locked_facts(parsed_json: dict) -> dict:
                 extract_from_text(value)
         for bullet in project.get("bullets", []):
             extract_from_text(bullet)
-    
+
     # Extract from internship
     for internship in parsed_json.get("internship", []):
         for key, value in internship.items():
@@ -318,19 +330,19 @@ def extract_locked_facts(parsed_json: dict) -> dict:
                 extract_from_text(value)
         for bullet in internship.get("bullets", []):
             extract_from_text(bullet)
-    
+
     # Extract from skills
     for skill in parsed_json.get("skills", []):
         for key, value in skill.items():
             if value:
                 extract_from_text(value)
-    
+
     # Extract from certifications
     for cert in parsed_json.get("certifications", []):
         for key, value in cert.items():
             if value:
                 extract_from_text(value)
-    
+
     # Extract contact info separately
     if header.get("email"):
         locked_facts["contact"].append(header["email"])
@@ -340,19 +352,20 @@ def extract_locked_facts(parsed_json: dict) -> dict:
         locked_facts["contact"].append(header["linkedin"])
     if header.get("github"):
         locked_facts["contact"].append(header["github"])
-    
+
     # Remove duplicates while preserving order
     for key in locked_facts:
         seen = set()
         locked_facts[key] = [x for x in locked_facts[key] if not (x in seen or seen.add(x))]
-    
+
     return locked_facts
 
-def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd: str) -> str:
+
+def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd: str, adapted_prompt: str = None) -> str:
     """
     Rewrite a single section using Gemini with strict rules.
+    adapted_prompt: Optional learned patterns from feedback
     """
-    # System part: the rules only (static, no variables)
     system_rules = """
     You are an expert ATS resume writer. Rewrite the given resume section to maximize 
     alignment with the job description.
@@ -369,7 +382,6 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     8. Preserve the original structure (number of bullets, number of entries)
     """
 
-    # User part: the dynamic data (facts + jd + section)
     user_message = f"""
     LOCKED FACTS (never modify these):
     {json.dumps(locked_facts, indent=2)}
@@ -380,6 +392,9 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
     SECTION TO REWRITE ({section_name}):
     {section_json}
     """
+
+    if adapted_prompt:
+        user_message += f"\n\nLEARNED IMPROVEMENTS (apply if relevant): {adapted_prompt}"
 
     try:
         response = call_gemini_with_retry(
@@ -392,5 +407,6 @@ def rewrite_section(section_json: str, section_name: str, locked_facts: dict, jd
         json.loads(cleaned_response)
         return cleaned_response
     except Exception as e:
+        logger.error(f"Failed to rewrite section '{section_name}': {e}", exc_info=True)
         # Return original section on error
         return section_json

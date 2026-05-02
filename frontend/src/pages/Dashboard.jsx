@@ -17,6 +17,9 @@ function Dashboard() {
   const [loading, setLoading] = useState({ analyze: false, rewrite: false });
   const [activeTab, setActiveTab] = useState('scores');
   const [history, setHistory] = useState([]);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackReason, setFeedbackReason] = useState('');
 
   const analyzeResume = async () => {
     if (!resumeText.trim() || !jobDescription.trim()) {
@@ -101,6 +104,24 @@ function Dashboard() {
       link.parentNode.removeChild(link);
     } catch (error) {
       alert('Failed to download PDF');
+    }
+  };
+
+  const submitFeedback = async () => {
+    if (!sessionId || feedbackRating === 0) return;
+    
+    try {
+      await api.post('/resume/feedback', {
+        session_id: sessionId,
+        rating: feedbackRating,
+        rating_reason: feedbackReason || null
+      });
+      setShowFeedback(false);
+      setFeedbackRating(0);
+      setFeedbackReason('');
+      alert('Thank you for your feedback!');
+    } catch (error) {
+      alert('Failed to submit feedback');
     }
   };
 
@@ -209,6 +230,15 @@ function Dashboard() {
                 </svg>
                 {loading.rewrite ? 'Exporting...' : 'Export PDF'}
               </button>
+              {sessionId && (
+                <button 
+                  onClick={() => setShowFeedback(true)}
+                  className="export-btn"
+                  style={{ marginLeft: '8px' }}
+                >
+                  Rate
+                </button>
+              )}
             </div>
 
             <div className="dash-panel-body">
@@ -232,6 +262,75 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {showFeedback && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ padding: '24px', maxWidth: '400px' }}>
+            <h3 style={{ marginBottom: '16px' }}>Rate this rewrite</h3>
+            <p style={{ marginBottom: '16px', color: '#666' }}>
+              How well did this resume match the job description?
+            </p>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'center' }}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  onClick={() => setFeedbackRating(star)}
+                  style={{
+                    fontSize: '24px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: star <= feedbackRating ? '#f59e0b' : '#ddd'
+                  }}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <textarea
+              placeholder="Optional: Why did you give this rating?"
+              value={feedbackReason}
+              onChange={(e) => setFeedbackReason(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                marginBottom: '16px',
+                minHeight: '60px'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowFeedback(false)}
+                style={{
+                  padding: '8px 16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  background: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitFeedback}
+                disabled={feedbackRating === 0}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  background: feedbackRating === 0 ? '#ccc' : '#3b82f6',
+                  color: 'white',
+                  cursor: feedbackRating === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
