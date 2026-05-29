@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
+# Resolve backend directory relative to this script
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(PROJECT_ROOT, 'backend'))
+
+# pyrefly: ignore [missing-import]
 from database import SessionLocal, engine
 from models.user import User
 from passlib.context import CryptContext

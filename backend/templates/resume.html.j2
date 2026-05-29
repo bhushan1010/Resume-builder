@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume - {{ header.name | e }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .contact-info {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+        .contact-info a {
+            color: #333;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            text-transform: uppercase;
+        }
+        .item {
+            margin-bottom: 15px;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+        .item-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+        .item-title a {
+            color: #333;
+            text-decoration: none;
+        }
+        .item-subtitle {
+            font-style: italic;
+            color: #555;
+            font-size: 14px;
+        }
+        .item-date {
+            font-weight: 600;
+            font-size: 13px;
+            color: #555;
+            white-space: nowrap;
+        }
+        .item-bullets {
+            margin: 5px 0 0 0;
+            padding-left: 20px;
+        }
+        .item-bullets li {
+            margin-bottom: 3px;
+        }
+        .skills-content {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .skills-content li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>{{ header.name | e }}</h1>
+        <div class="contact-info">
+            {% set links = [] %}
+            {% if header.email %}{% set _ = links.append('<a href="mailto:' ~ header.email|e ~ '">' ~ header.email|e ~ '</a>') %}{% endif %}
+            {% if header.phone %}{% set _ = links.append('<a href="https://wa.me/' ~ header.phone|e ~ '">' ~ header.phone|e ~ '</a>') %}{% endif %}
+            {% if header.linkedin %}{% set _ = links.append('<a href="' ~ header.linkedin|e ~ '">LinkedIn</a>') %}{% endif %}
+            {% if header.github %}{% set _ = links.append('<a href="' ~ header.github|e ~ '">GitHub</a>') %}{% endif %}
+            {% if header.portfolio %}{% set _ = links.append('<a href="' ~ header.portfolio|e ~ '">Portfolio</a>') %}{% endif %}
+            {% if header.leetcode %}{% set _ = links.append('<a href="' ~ header.leetcode|e ~ '">LeetCode</a>') %}{% endif %}
+            {{ links | join(' | ') | safe }}
+        </div>
+    </div>
+
+    {% if summary %}
+    <div class="section">
+        <h2 class="section-title">Summary</h2>
+        <div>{{ summary | e }}</div>
+    </div>
+    {% endif %}
+
+    {% if education and education|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Education</h2>
+        {% for edu in education %}
+        <div class="item">
+            <div class="item-header">
+                <div class="item-title">{{ edu.institution | e }} <span style="font-weight: normal; margin: 0 5px;">-</span> <span class="item-subtitle">{{ edu.degree | e }}</span></div>
+                <div class="item-date">{{ edu.duration | e }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if projects and projects|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Projects</h2>
+        {% for project in projects %}
+        <div class="item">
+            <div class="item-header">
+                <div class="item-title">
+                    {% if project.url %}
+                        <a href="{{ project.url | e }}">{{ project.name | e }}</a>
+                    {% else %}
+                        {{ project.name | e }}
+                    {% endif %}
+                </div>
+                <div class="item-date">{{ project.duration | e }}</div>
+            </div>
+            <ul class="item-bullets">
+                {% for bullet in project.bullets %}
+                <li>{{ bullet | e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if internship and internship|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Experience</h2>
+        {% for exp in internship %}
+        <div class="item">
+            <div class="item-header">
+                <div class="item-title">
+                    {% if exp.url %}
+                        <a href="{{ exp.url | e }}">{{ exp.company | e }}</a>
+                    {% else %}
+                        {{ exp.company | e }}
+                    {% endif %}
+                    <span style="font-weight: normal; margin: 0 5px;">-</span> <span class="item-subtitle">{{ exp.role | e }}</span>
+                </div>
+                <div class="item-date">{{ exp.duration | e }}</div>
+            </div>
+            <ul class="item-bullets">
+                {% for bullet in exp.bullets %}
+                <li>{{ bullet | e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if skills and skills|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Skills</h2>
+        <ul class="skills-content">
+            {% for skill in skills %}
+            <li><strong>{{ skill.category | e }}:</strong> {% if skill['items'] is string %}{{ skill['items'] | e }}{% else %}{{ skill['items'] | join(', ') | e }}{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if certifications and certifications|length > 0 %}
+    <div class="section">
+        <h2 class="section-title">Certifications</h2>
+        <ul class="item-bullets">
+            {% for cert in certifications %}
+            <li>
+                {% if cert.url %}
+                    <a href="{{ cert.url | e }}">{{ cert.name | e }}</a>
+                {% else %}
+                    {{ cert.name | e }}
+                {% endif %}
+                ({{ cert.duration | e }})
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+</body>
+</html>

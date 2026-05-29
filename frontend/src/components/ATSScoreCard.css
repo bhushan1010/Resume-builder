@@ -117,3 +117,101 @@
   gap: 4px;
   font-weight: 500;
 }
+
+/* ── Score band badges ────────────────────────────────────────── */
+.score-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.band-green { background: rgba(16,185,129,0.12); color: var(--accent-green); }
+.band-amber { background: rgba(245,158,11,0.12);  color: var(--accent-amber); }
+.band-red   { background: rgba(239,68,68,0.12);   color: var(--accent-red); }
+.band-none  { background: transparent;             color: var(--text-tertiary); }
+
+.score-absent {
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+/* ── Keywords panels ──────────────────────────────────────────── */
+.keywords-panel {
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.keywords-panel--missing {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.20);
+}
+
+.keywords-panel--matched {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.20);
+}
+
+.keywords-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.keywords-panel-icon {
+  font-size: 16px;
+}
+
+.keywords-panel-header h4 {
+  margin: 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.keywords-panel-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: 'DM Sans', sans-serif;
+  margin-left: auto;
+}
+
+.keywords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keyword-chip {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: transform 100ms ease, opacity 100ms ease;
+}
+
+.keyword-chip:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+.keyword-chip--missing {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.keyword-chip--matched {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}

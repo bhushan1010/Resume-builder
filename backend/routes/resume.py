@@ -46,6 +46,8 @@ class FeedbackRequest(BaseModel):
 class AnalyzeResponse(BaseModel):
     overall_score: float
     section_scores: dict
+    missing_keywords: list = []
+    matched_keywords: list = []
 
 
 class RewriteResponse(BaseModel):
@@ -56,6 +58,8 @@ class RewriteResponse(BaseModel):
     section_scores_after: dict
     session_id: int
     improvement_tips: list = None
+    missing_keywords: list = []
+    matched_keywords: list = []
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +81,9 @@ async def analyze_resume(
 
     return AnalyzeResponse(
         overall_score=result["overall"],
-        section_scores=result["sections"]
+        section_scores=result["sections"],
+        missing_keywords=result.get("missing_keywords", []),
+        matched_keywords=result.get("matched_keywords", []),
     )
 
 
@@ -90,7 +96,6 @@ async def rewrite_resume(
     # FIXED: every blocking call below is now wrapped in run_in_threadpool.
     # Without this, a single /rewrite request blocks the entire FastAPI
     # event loop for 30-60+ seconds, freezing all other requests.
-
     industry = await run_in_threadpool(
         pattern_learner.detect_industry, request.job_description
     )
@@ -101,24 +106,41 @@ async def rewrite_resume(
         pattern_learner.get_adapted_prompt, industry, learned_patterns
     )
 
+    # Pre-compute JD keywords ONCE — reused by both scorer and rewriter
+    jd_keywords = await run_in_threadpool(
+        ats_scorer.extract_jd_keywords, request.job_description
+    )
+
     original_score = await run_in_threadpool(
         ats_scorer.score, request.resume_text, request.job_description
     )
-    parsed_resume = await run_in_threadpool(
-        gemini.parse_resume, request.resume_text
-    )
-    rewritten_resume = await run_in_threadpool(
-        gemini.rewrite_resume, parsed_resume, request.job_description, adapted_prompt
-    )
+    try:
+        parsed_resume = await run_in_threadpool(
+            gemini.parse_resume, request.resume_text
+        )
+        # Pass jd_keywords so rewriter uses the same terms, no re-extraction
+        rewritten_resume = await run_in_threadpool(
+            gemini.rewrite_resume,
+            parsed_resume,
+            request.job_description,
+            adapted_prompt,
+            jd_keywords,
+        )
+    except Exception as e:
+        logger.error(f"AI service error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The AI rewriting service is currently experiencing high demand. "
+                "Please try again in a few minutes."
+            )
+        )
 
     rewritten_text = json.dumps(rewritten_resume)
     rewritten_score = await run_in_threadpool(
         ats_scorer.score, rewritten_text, request.job_description
     )
 
-    # FIXED: improvement_tips no longer gated on `learned_patterns`.
-    # The function only compares before/after section scores — useful for ALL users,
-    # including first-time users who don't have learned patterns yet.
     improvement_tips = pattern_learner.get_improvement_tips(
         original_score["sections"],
         rewritten_score["sections"]
@@ -142,7 +164,10 @@ async def rewrite_resume(
         db.refresh(db_session)
     except Exception as e:
         db.rollback()
-        logger.error(f"Failed to save rewrite session for user {current_user.id}: {e}", exc_info=True)
+        logger.error(
+            f"Failed to save rewrite session for user {current_user.id}: {e}",
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail="Failed to save session")
 
     return RewriteResponse(
@@ -152,7 +177,9 @@ async def rewrite_resume(
         section_scores_before=original_score["sections"],
         section_scores_after=rewritten_score["sections"],
         session_id=db_session.id,
-        improvement_tips=improvement_tips
+        improvement_tips=improvement_tips,
+        missing_keywords=rewritten_score.get("missing_keywords", []),
+        matched_keywords=rewritten_score.get("matched_keywords", []),
     )
 
 

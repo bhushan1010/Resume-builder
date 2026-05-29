@@ -20,6 +20,8 @@ function Dashboard() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackReason, setFeedbackReason] = useState('');
+  const [missingKeywords, setMissingKeywords] = useState([]);
+  const [matchedKeywords, setMatchedKeywords] = useState([]);
 
   const analyzeResume = async () => {
     if (!resumeText.trim() || !jobDescription.trim()) {
@@ -28,18 +30,25 @@ function Dashboard() {
     }
 
     setLoading(prev => ({ ...prev, analyze: true }));
+    // Reset after scores when re-analyzing
+    setATSScores({ before: null, after: null });
+    setSectionScores({ before: {}, after: null });
+    setMissingKeywords([]);
+    setMatchedKeywords([]);
     try {
       const response = await api.post('/resume/analyze', {
         resume_text: resumeText,
         job_description: jobDescription
       });
-      
+
       setATSScores({ before: response.data.overall_score, after: null });
       setSectionScores({ before: response.data.section_scores, after: null });
+      setMissingKeywords(response.data.missing_keywords || []);
+      setMatchedKeywords(response.data.matched_keywords || []);
       setRewrittenResume(null);
       setSessionId(null);
     } catch (error) {
-      alert('Analysis failed. Please try again.');
+      alert('Analysis failed. Please check your API connection and try again.');
     } finally {
       setLoading(prev => ({ ...prev, analyze: false }));
     }
@@ -52,27 +61,36 @@ function Dashboard() {
     }
 
     setLoading(prev => ({ ...prev, rewrite: true }));
+    // Clear after scores while rewriting
+    setATSScores(prev => ({ ...prev, after: null }));
+    setSectionScores(prev => ({ ...prev, after: null }));
     try {
       const response = await api.post('/resume/rewrite', {
         resume_text: resumeText,
         job_description: jobDescription
       });
-      
-      setATSScores(prev => ({ 
-        ...prev, 
-        after: response.data.ats_after 
-      }));
-      setSectionScores(prev => ({ 
-        ...prev, 
-        after: response.data.section_scores_after 
-      }));
-      setRewrittenResume(response.data.rewritten_json);
-      setSessionId(response.data.session_id);
-      setActiveTab('preview');  // auto-switch to show results
-      
+
+      const d = response.data;
+      // Use ats_before from the SAME scoring run so Before/After are always consistent
+      setATSScores({
+        before: d.ats_before,
+        after:  d.ats_after,
+      });
+      setSectionScores({
+        before: d.section_scores_before,
+        after:  d.section_scores_after,
+      });
+      setMissingKeywords(d.missing_keywords || []);
+      setMatchedKeywords(d.matched_keywords || []);
+      setRewrittenResume(d.rewritten_json);
+      setSessionId(d.session_id);
+      // Stay on Scores tab so user immediately sees improvement
+      setActiveTab('scores');
+
       loadHistory();
     } catch (error) {
-      alert('Rewrite failed. Please try again.');
+      const msg = error?.response?.data?.detail || 'Rewrite failed. The AI service may be busy. Please try again.';
+      alert(msg);
     } finally {
       setLoading(prev => ({ ...prev, rewrite: false }));
     }
@@ -91,7 +109,7 @@ function Dashboard() {
     if (!sessionId) return;
     
     try {
-      const response = await api.post(`/history/${sessionId}/export`, {}, {
+      const response = await api.get(`/history/${sessionId}/export`, {
         responseType: 'blob'
       });
       
@@ -243,11 +261,13 @@ function Dashboard() {
 
             <div className="dash-panel-body">
               {activeTab === 'scores' && (
-                <ATSScoreCard 
-                  beforeScore={atsScores.before} 
+                <ATSScoreCard
+                  beforeScore={atsScores.before}
                   afterScore={atsScores.after}
                   sectionScoresBefore={sectionScores.before}
                   sectionScoresAfter={sectionScores.after}
+                  missingKeywords={missingKeywords}
+                  matchedKeywords={matchedKeywords}
                   loading={loading.analyze || loading.rewrite}
                 />
               )}

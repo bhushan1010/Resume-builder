@@ -5,7 +5,7 @@ import './HistoryCard.css';
 const HistoryCard = ({ session }) => {
   const handleDownloadPDF = async () => {
     try {
-      const response = await api.post(`/history/${session.id}/export`, {}, {
+      const response = await api.get(`/history/${session.id}/export`, {
         responseType: 'blob'
       });
       

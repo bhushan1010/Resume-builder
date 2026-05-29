@@ -8,3 +8,5 @@ backend/.env
 /backend/outputs/*.pdf
 patterns_data.json
 /graphify-out
+/backend/bin
+/wkhtmltox
