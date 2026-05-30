@@ -91,9 +91,50 @@ def generate(
         env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template(template_name)
 
-        # Render HTML template with resume data
+        # Normalize URLs to prevent broken relative links in PDF
+        import copy
+        resume_data = copy.deepcopy(resume_json)
+        
+        def clean_url(url):
+            if not url or not isinstance(url, str):
+                return url
+            url_str = url.strip()
+            if not url_str:
+                return url_str
+            if url_str.startswith(("http://", "https://", "mailto:", "tel:")):
+                return url_str
+            return f"https://{url_str}"
+
+        # Clean header links
+        header = resume_data.get("header", {})
+        for key in ["linkedin", "github", "portfolio", "leetcode"]:
+            if key in header:
+                header[key] = clean_url(header[key])
+        
+        # Clean email specifically
+        if "email" in header and header["email"]:
+            email = header["email"].strip()
+            if not email.startswith("mailto:"):
+                header["email"] = f"mailto:{email}"
+
+        # Clean projects links
+        for proj in resume_data.get("projects", []):
+            if "url" in proj:
+                proj["url"] = clean_url(proj["url"])
+
+        # Clean internship/experience links
+        for exp in resume_data.get("internship", []):
+            if "url" in exp:
+                exp["url"] = clean_url(exp["url"])
+
+        # Clean certifications links
+        for cert in resume_data.get("certifications", []):
+            if "url" in cert:
+                cert["url"] = clean_url(cert["url"])
+
+        # Render HTML template with normalized resume data
         # Jinja will autoescape strings due to the | e filters in the template
-        html_content = template.render(**resume_json)
+        html_content = template.render(**resume_data)
 
         # Convert HTML to PDF using pdfkit
         options = {

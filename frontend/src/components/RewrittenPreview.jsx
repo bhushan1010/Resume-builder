@@ -6,6 +6,16 @@ const RewrittenPreview = ({ resumeData }) => {
 
   if (!resumeData) return null;
 
+  const cleanUrl = (url) => {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
   const handleCopy = () => {
     // Basic text format copy could be extended, but stringify works over no copy
     navigator.clipboard.writeText(JSON.stringify(resumeData, null, 2));
@@ -13,11 +23,13 @@ const RewrittenPreview = ({ resumeData }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const SectionContainer = ({ title, children }) => (
-    <div className="preview-section-card animate-in" style={{ animationDelay: '100ms' }}>
-      <h3 className="preview-section-title">
-        {title}
-      </h3>
+  const SectionContainer = ({ title, children, className = '' }) => (
+    <div className={`preview-section-card animate-in ${className}`} style={{ animationDelay: '100ms' }}>
+      {title && (
+        <h3 className="preview-section-title">
+          {title}
+        </h3>
+      )}
       {children}
     </div>
   );
@@ -59,6 +71,50 @@ const RewrittenPreview = ({ resumeData }) => {
         </button>
       </div>
 
+      {resumeData.header && (
+        <SectionContainer className="header-preview-card">
+          <h2 className="preview-name">{resumeData.header.name}</h2>
+          <div className="preview-contact-grid">
+            {resumeData.header.email && (
+              <span className="contact-item">
+                <span className="contact-icon">📧</span>
+                <a href={`mailto:${resumeData.header.email}`} className="link-text">{resumeData.header.email}</a>
+              </span>
+            )}
+            {resumeData.header.phone && (
+              <span className="contact-item">
+                <span className="contact-icon">📞</span>
+                <a href={`tel:${resumeData.header.phone}`} className="link-text">{resumeData.header.phone}</a>
+              </span>
+            )}
+            {resumeData.header.linkedin && (
+              <span className="contact-item">
+                <span className="contact-icon">🔗</span>
+                <a href={cleanUrl(resumeData.header.linkedin)} target="_blank" rel="noopener noreferrer" className="link-text">LinkedIn</a>
+              </span>
+            )}
+            {resumeData.header.github && (
+              <span className="contact-item">
+                <span className="contact-icon">💻</span>
+                <a href={cleanUrl(resumeData.header.github)} target="_blank" rel="noopener noreferrer" className="link-text">GitHub</a>
+              </span>
+            )}
+            {resumeData.header.portfolio && (
+              <span className="contact-item">
+                <span className="contact-icon">🌐</span>
+                <a href={cleanUrl(resumeData.header.portfolio)} target="_blank" rel="noopener noreferrer" className="link-text">Portfolio</a>
+              </span>
+            )}
+            {resumeData.header.leetcode && (
+              <span className="contact-item">
+                <span className="contact-icon">⚡</span>
+                <a href={cleanUrl(resumeData.header.leetcode)} target="_blank" rel="noopener noreferrer" className="link-text">LeetCode</a>
+              </span>
+            )}
+          </div>
+        </SectionContainer>
+      )}
+
       {resumeData.summary && (
         <SectionContainer title="Summary">
           <p className="preview-text">{resumeData.summary}</p>
@@ -90,9 +146,13 @@ const RewrittenPreview = ({ resumeData }) => {
               <div key={index} className="preview-entry" style={{ flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <h4 className="preview-entry-title">
-                    <a href={project.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
-                      {project.name}
-                    </a>
+                    {project.url ? (
+                      <a href={cleanUrl(project.url)} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
+                        {project.name}
+                      </a>
+                    ) : (
+                      project.name
+                    )}
                   </h4>
                   <span className="preview-entry-duration" style={{ width: 'auto', textAlign: 'right' }}>{project.duration}</span>
                 </div>
@@ -113,9 +173,13 @@ const RewrittenPreview = ({ resumeData }) => {
                 </div>
                 <div className="preview-entry-content">
                   <h4 className="preview-entry-title">
-                    <a href={exp.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
-                      {exp.company}
-                    </a>
+                    {exp.url ? (
+                      <a href={cleanUrl(exp.url)} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)' }}>
+                        {exp.company}
+                      </a>
+                    ) : (
+                      exp.company
+                    )}
                   </h4>
                   <p className="preview-entry-subtitle">{exp.role}</p>
                   <BulletList bullets={exp.bullets} />
@@ -147,9 +211,13 @@ const RewrittenPreview = ({ resumeData }) => {
             {resumeData.certifications.map((cert, index) => (
               <div key={index} className="preview-cert-row">
                 <span className="preview-bullet-icon">•</span>
-                <a href={cert.url} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)', fontWeight: 500 }}>
-                  {cert.name}
-                </a>
+                {cert.url ? (
+                  <a href={cleanUrl(cert.url)} target="_blank" rel="noopener noreferrer" className="link-text" style={{ color: 'var(--accent)', fontWeight: 500 }}>
+                    {cert.name}
+                  </a>
+                ) : (
+                  cert.name
+                )}
                 <span className="preview-entry-duration" style={{ width: 'auto', marginLeft: '8px' }}>
                   ({cert.duration})
                 </span>

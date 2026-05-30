@@ -1,8 +1,11 @@
 import os
 import json
 import re
+import requests
 import time
 import logging
+import contextvars
+from typing import Optional
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -13,6 +16,9 @@ load_dotenv()
 from services.key_manager import key_manager
 
 logger = logging.getLogger(__name__)
+
+# Request-scoped custom Gemini API key context variable (safe for concurrency)
+personal_gemini_key: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("personal_gemini_key", default=None)
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
@@ -30,28 +36,142 @@ SECTION_DISPLAY_NAME = {
 # ---------------------------------------------------------------------------
 # Core Gemini call with key rotation + retry
 # ---------------------------------------------------------------------------
-def call_gemini_with_retry(
+class LLMResponse:
+    def __init__(self, text: str):
+        self.text = text
+
+
+def call_ollama(prompt_content, system_instruction=None):
+    """Call local Ollama service using its native API."""
+    ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
+    ollama_model = os.getenv("OLLAMA_MODEL", "llama3")
+    
+    headers = {"Content-Type": "application/json"}
+    
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+        
+    if isinstance(prompt_content, str):
+        messages.append({"role": "user", "content": prompt_content})
+    elif isinstance(prompt_content, list):
+        content_text = ""
+        images = []
+        for item in prompt_content:
+            if isinstance(item, dict) and "inline_data" in item:
+                # Add base64 data directly to images list
+                images.append(item["inline_data"].get("data", ""))
+            elif isinstance(item, dict) and "text" in item:
+                content_text += item["text"] + "\n"
+            elif isinstance(item, str):
+                content_text += item + "\n"
+        
+        user_message = {"role": "user", "content": content_text.strip()}
+        if images:
+            user_message["images"] = images
+        messages.append(user_message)
+        
+    payload = {
+        "model": ollama_model,
+        "messages": messages,
+        "options": {"temperature": 0.1},
+        "stream": False
+    }
+    
+    response = requests.post(f"{ollama_url}/api/chat", json=payload, headers=headers, timeout=90)
+    response.raise_for_status()
+    
+    result = response.json()
+    return LLMResponse(result["message"]["content"])
+
+
+def call_openrouter(prompt_content, system_instruction=None):
+    """Call OpenRouter service using OpenAI-compatible API."""
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="OPENROUTER_API_KEY is not configured in your .env file."
+        )
+        
+    model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3-8b-instruct:free")
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "ATS Resume Builder",
+    }
+    
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+        
+    if isinstance(prompt_content, str):
+        messages.append({"role": "user", "content": prompt_content})
+    elif isinstance(prompt_content, list):
+        content_list = []
+        for item in prompt_content:
+            if isinstance(item, dict) and "inline_data" in item:
+                mime = item["inline_data"].get("mime_type", "image/png")
+                b64_data = item["inline_data"].get("data", "")
+                content_list.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime};base64,{b64_data}"}
+                })
+            elif isinstance(item, dict) and "text" in item:
+                content_list.append({
+                    "type": "text",
+                    "text": item["text"]
+                })
+            elif isinstance(item, str):
+                content_list.append({
+                    "type": "text",
+                    "text": item
+                })
+        messages.append({"role": "user", "content": content_list})
+        
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.1,
+    }
+    
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=90)
+    response.raise_for_status()
+    
+    choice = response.json()["choices"][0]
+    return LLMResponse(choice["message"]["content"])
+
+
+def call_gemini_with_rotation(
     prompt_content,
     max_retries: int = 3,
     system_instruction: str = None
 ):
     """
-    Call Gemini API with automatic key rotation and retry.
-    prompt_content can be str or list (for vision calls).
+    Original Gemini call logic with automatic key rotation and retry.
+    Supports a custom request-scoped personal API key which bypasses rotation.
     """
     last_error = None
+    custom_key = personal_gemini_key.get()
 
-    # Dynamically scale attempts to ensure every key is tried if needed
-    num_keys = len(key_manager.keys)
-    actual_attempts = max(max_retries, num_keys)
+    if custom_key:
+        key = custom_key
+        actual_attempts = 1  # Only 1 attempt for custom key
+    else:
+        # Dynamically scale attempts to ensure every key is tried if needed
+        num_keys = len(key_manager.keys)
+        actual_attempts = max(max_retries, num_keys)
 
     for attempt in range(actual_attempts):
-        key = key_manager.get_available_key()
-        if key is None:
-            raise HTTPException(
-                status_code=503,
-                detail="All API keys are currently rate limited. Please try again in about a minute."
-            )
+        if not custom_key:
+            key = key_manager.get_available_key()
+            if key is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="All API keys are currently rate limited. Please try again in about a minute."
+                )
 
         try:
             client = genai.Client(api_key=key)
@@ -96,6 +216,11 @@ def call_gemini_with_retry(
             )
 
             if is_daily_exhausted:
+                if custom_key:
+                    raise HTTPException(
+                        status_code=429,
+                        detail="Your personal Gemini API key has exhausted its daily request limit."
+                    )
                 key_manager.mark_daily_exhausted(key)
                 logger.warning(
                     f"📅 Daily quota exhausted for key ...{key[-4:]}. Rotating to next key."
@@ -103,6 +228,11 @@ def call_gemini_with_retry(
                 continue
 
             elif is_rate_limited:
+                if custom_key:
+                    raise HTTPException(
+                        status_code=429,
+                        detail="Your personal Gemini API key is rate limited. Please try again in a minute."
+                    )
                 key_manager.mark_rate_limited(key)
                 wait_seconds = 2 ** attempt   # 1s, 2s, 4s
                 logger.warning(
@@ -126,10 +256,44 @@ def call_gemini_with_retry(
     )
 
 
+def call_gemini_with_retry(
+    prompt_content,
+    max_retries: int = 3,
+    system_instruction: str = None,
+    provider: str = None
+):
+    """
+    Unified LLM call routing. Supports Gemini, Ollama, and OpenRouter.
+    """
+    if not provider:
+        provider = os.getenv("LLM_PROVIDER", "gemini").lower().strip()
+    else:
+        provider = provider.lower().strip()
+    
+    if provider == "ollama":
+        try:
+            return call_ollama(prompt_content, system_instruction)
+        except Exception as e:
+            logger.error(f"Ollama call failed: {e}", exc_info=True)
+            raise HTTPException(status_code=502, detail=f"Ollama connection failed: {str(e)}")
+            
+    elif provider == "openrouter":
+        try:
+            return call_openrouter(prompt_content, system_instruction)
+        except Exception as e:
+            logger.error(f"OpenRouter call failed: {e}", exc_info=True)
+            raise HTTPException(status_code=502, detail=f"OpenRouter API call failed: {str(e)}")
+            
+    else:
+        # Default: Gemini
+        return call_gemini_with_rotation(prompt_content, max_retries, system_instruction)
+
+
+
 # ---------------------------------------------------------------------------
 # Resume parsing
 # ---------------------------------------------------------------------------
-def parse_resume(resume_text: str) -> dict:
+def parse_resume(resume_text: str, provider: str = None) -> dict:
     """Parse raw resume text into structured JSON using Gemini."""
     system_instruction_text = (
         "You are a resume parser. Parse the given resume text into structured JSON "
@@ -158,7 +322,8 @@ def parse_resume(resume_text: str) -> dict:
     try:
         response = call_gemini_with_retry(
             user_prompt,
-            system_instruction=system_instruction_text
+            system_instruction=system_instruction_text,
+            provider=provider
         )
         cleaned = re.sub(r'```json|```', '', response.text).strip()
         parsed_data = json.loads(cleaned)
@@ -193,6 +358,7 @@ def rewrite_resume(
     jd: str,
     adapted_prompt: str = None,
     jd_keywords: dict = None,
+    provider: str = None,
 ) -> dict:
     """
     Rewrite resume sections to maximise JD alignment.
@@ -228,7 +394,7 @@ def rewrite_resume(
                 original_text = json.dumps({"summary": section_content}, indent=2)
                 rewritten_text = _rewrite_single_item(
                     original_text, display_name, locked_facts, jd,
-                    keyword_hint, adapted_prompt
+                    keyword_hint, adapted_prompt, provider
                 )
                 rewritten_data = json.loads(rewritten_text)
                 candidate = rewritten_data.get("summary", section_content)
@@ -255,7 +421,7 @@ def rewrite_resume(
                     item_text = json.dumps(item, indent=2)
                     rewritten_text = _rewrite_single_item(
                         item_text, display_name, locked_facts, jd,
-                        keyword_hint, adapted_prompt
+                        keyword_hint, adapted_prompt, provider
                     )
                     try:
                         rewritten_item = json.loads(rewritten_text)
@@ -275,9 +441,57 @@ def rewrite_resume(
                         if rew_s < orig_s - 5:   # 5pt tolerance for items
                             logger.warning(
                                 f"{section_name} item rewrite degraded "
-                                f"({orig_s:.1f} → {rew_s:.1f}). Keeping original."
+                                f"({orig_s:.1f} \u2192 {rew_s:.1f}). Keeping original."
                             )
                             rewritten_item = item
+
+                    # Keyword coverage check \u2014 retry once if too few keywords matched
+                    if jd_keywords and rewritten_item != item:
+                        rewritten_text_flat = json.dumps(rewritten_item).lower()
+                        required_kws = [t for t, _ in jd_keywords.get("required", [])[:15]]
+                        if required_kws:
+                            matched_count = sum(
+                                1 for kw in required_kws
+                                if kw.lower() in rewritten_text_flat
+                            )
+                            coverage = matched_count / len(required_kws)
+                            if coverage < 0.3:  # Less than 30% of required keywords
+                                logger.info(
+                                    f"{section_name}: keyword coverage {coverage:.0%}, "
+                                    f"retrying with stronger prompt"
+                                )
+                                missing_kws = [
+                                    kw for kw in required_kws
+                                    if kw.lower() not in rewritten_text_flat
+                                ]
+                                stronger_hint = (
+                                    f"{keyword_hint}\n\n"
+                                    f"CRITICAL: The following keywords MUST appear "
+                                    f"in this section: {', '.join(missing_kws[:10])}"
+                                )
+                                retry_text = _rewrite_single_item(
+                                    json.dumps(rewritten_item, indent=2),
+                                    display_name, locked_facts, jd,
+                                    stronger_hint, adapted_prompt, provider
+                                )
+                                try:
+                                    retry_item = json.loads(retry_text)
+                                    retry_flat = json.dumps(retry_item).lower()
+                                    retry_matched = sum(
+                                        1 for kw in required_kws
+                                        if kw.lower() in retry_flat
+                                    )
+                                    if retry_matched > matched_count:
+                                        rewritten_item = retry_item
+                                        logger.info(
+                                            f"{section_name}: retry improved coverage "
+                                            f"to {retry_matched}/{len(required_kws)}"
+                                        )
+                                except (json.JSONDecodeError, Exception) as e:
+                                    logger.warning(
+                                        f"{section_name}: retry failed ({e}), "
+                                        f"keeping first rewrite"
+                                    )
 
                     rewritten_items.append(rewritten_item)
 
@@ -299,21 +513,30 @@ def _rewrite_single_item(
     locked_facts: dict,
     jd: str,
     keyword_hint: str,
-    adapted_prompt: str = None
+    adapted_prompt: str = None,
+    provider: str = None
 ) -> str:
     """Rewrite one JSON item (or summary string) with keyword injection."""
-    system_rules = """You are an elite ATS resume writer. Rewrite the given resume
+    system_rules = f"""You are an elite ATS resume writer. Rewrite the given resume
 section to maximise alignment with the job description.
+
+You are rewriting a {display_name}.
 
 STRICT RULES:
 1. NEVER change any fact: numbers, percentages, dates, URLs, company names,
    institution names, project names, or person names.
 2. The locked facts provided must appear EXACTLY as given.
-3. Inject the REQUIRED KEYWORDS naturally — they MUST appear in the output.
+3. Inject the REQUIRED KEYWORDS naturally \u2014 they MUST appear in the output.
 4. Keep bullets concise (1-2 lines). Start each with a strong action verb.
-5. Return ONLY the rewritten section as valid JSON — no markdown, no explanation.
+5. Return ONLY the rewritten section as valid JSON \u2014 no markdown, no explanation.
 6. Do NOT invent experience or achievements that don't exist in the original.
-7. Preserve structure exactly: same number of bullets, same number of entries."""
+7. Preserve structure exactly: same number of bullets, same number of entries.
+
+SECTION-SPECIFIC GUIDANCE:
+- If this is a professional summary: Lead with the target job title and years of experience. Include top 3-5 required skills. Keep it 3-4 sentences max.
+- If this is technical skills: Ensure ALL required technologies from the JD appear. Group by category. Use exact technology names matching the JD.
+- If this is a work experience entry: Use STAR format (Situation-Task-Action-Result). Quantify impact with metrics. Start each bullet with a past-tense action verb.
+- If this is a project entry: Highlight technologies that overlap with JD requirements. Emphasize measurable outcomes and scale."""
 
     user_message = (
         f"LOCKED FACTS (never modify):\n{json.dumps(locked_facts, indent=2)}\n\n"
@@ -326,7 +549,7 @@ STRICT RULES:
         user_message += f"\n\nLEARNED IMPROVEMENTS (apply if relevant): {adapted_prompt}"
 
     try:
-        response = call_gemini_with_retry(user_message, system_instruction=system_rules)
+        response = call_gemini_with_retry(user_message, system_instruction=system_rules, provider=provider)
         cleaned = re.sub(r'```json|```', '', response.text).strip()
         json.loads(cleaned)   # validate JSON before returning
         return cleaned

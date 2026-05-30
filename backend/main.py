@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from routes import auth, resume, history, status
 from database import Base, engine
 import models  # Import models to ensure tables are created
+from services.gemini import personal_gemini_key
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -52,6 +53,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_personal_gemini_key_header(request: Request, call_next):
+    personal_key = request.headers.get("x-personal-gemini-key")
+    token = None
+    if personal_key:
+        token = personal_gemini_key.set(personal_key)
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        if token:
+            personal_gemini_key.reset(token)
 
 # ---------------------------------------------------------------------------
 # Routers

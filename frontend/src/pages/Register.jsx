@@ -26,7 +26,21 @@ function Register() {
       localStorage.setItem('token', response.data.access_token);
       navigate('/dashboard');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      if (err.response && err.response.data && err.response.data.detail) {
+        const detail = err.response.data.detail;
+        if (Array.isArray(detail)) {
+          // Format validation errors (e.g. "Value error, Username must be at least 3 characters")
+          // We clean up common FastAPI prefixes like "Value error, " for cleaner UX
+          const messages = detail.map(d => d.msg.replace(/^Value error,\s*/i, '')).join(', ');
+          setError(`Registration failed: ${messages}`);
+        } else if (typeof detail === 'string') {
+          setError(`Registration failed: ${detail}`);
+        } else {
+          setError('Registration failed. Please check your inputs.');
+        }
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -30,11 +30,13 @@ UPLOAD_CHUNK_SIZE = 64 * 1024       # 64KB chunks while reading
 class AnalyzeRequest(BaseModel):
     resume_text: str
     job_description: str
+    provider: str = None
 
 
 class RewriteRequest(BaseModel):
     resume_text: str
     job_description: str
+    provider: str = None
 
 
 class FeedbackRequest(BaseModel):
@@ -116,7 +118,7 @@ async def rewrite_resume(
     )
     try:
         parsed_resume = await run_in_threadpool(
-            gemini.parse_resume, request.resume_text
+            gemini.parse_resume, request.resume_text, request.provider
         )
         # Pass jd_keywords so rewriter uses the same terms, no re-extraction
         rewritten_resume = await run_in_threadpool(
@@ -125,7 +127,10 @@ async def rewrite_resume(
             request.job_description,
             adapted_prompt,
             jd_keywords,
+            request.provider
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"AI service error: {e}", exc_info=True)
         raise HTTPException(
@@ -222,6 +227,7 @@ async def export_resume_pdf(
 
 @router.post("/extract-pdf")
 async def extract_resume_from_pdf_endpoint(
+    provider: str = None,
     pdf_file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
@@ -247,7 +253,7 @@ async def extract_resume_from_pdf_endpoint(
 
     # FIXED: PDF extraction (PyMuPDF + possibly Gemini Vision) is blocking.
     # Wrap in threadpool.
-    result = await run_in_threadpool(pdf_extractor.extract_resume_from_pdf, pdf_bytes)
+    result = await run_in_threadpool(pdf_extractor.extract_resume_from_pdf, pdf_bytes, provider)
 
     return result
 
@@ -290,12 +296,21 @@ async def submit_feedback(
     # Update learned patterns (file write — wrap in threadpool)
     if session.industry:
         try:
+            sections_before = json.loads(session.section_scores_before) if session.section_scores_before else None
+            sections_after = json.loads(session.section_scores_after) if session.section_scores_after else None
+        except (json.JSONDecodeError, TypeError):
+            sections_before = None
+            sections_after = None
+
+        try:
             await run_in_threadpool(
                 pattern_learner.update_patterns,
                 session.industry,
                 session.ats_score_before,
                 session.ats_score_after,
-                request.rating
+                request.rating,
+                sections_before,
+                sections_after
             )
         except Exception as e:
             # Don't fail the feedback request if pattern update fails

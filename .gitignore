@@ -10,3 +10,8 @@ patterns_data.json
 /graphify-out
 /backend/bin
 /wkhtmltox
+/.agents
+/.agents
+/.agents
+/backend/tests
+/.agents

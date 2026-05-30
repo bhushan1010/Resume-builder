@@ -101,7 +101,7 @@ def pdf_pages_to_base64(pdf_bytes: bytes) -> list[str]:
                 pass
 
 
-def extract_text_via_vision(pdf_bytes: bytes) -> str:
+def extract_text_via_vision(pdf_bytes: bytes, provider: str = None) -> str:
     """
     Use Gemini Vision to OCR the PDF pages.
     """
@@ -126,7 +126,7 @@ def extract_text_via_vision(pdf_bytes: bytes) -> str:
         )
     })
 
-    response = call_gemini_with_retry(content)
+    response = call_gemini_with_retry(content, provider=provider)
     return response.text.strip()
 
 
@@ -186,7 +186,7 @@ def assess_extraction_quality(text: str) -> dict:
     }
 
 
-def extract_resume_from_pdf(pdf_bytes: bytes) -> dict:
+def extract_resume_from_pdf(pdf_bytes: bytes, provider: str = None) -> dict:
     """
     Main entry point for PDF resume extraction.
     Returns extraction result dictionary.
@@ -245,7 +245,7 @@ def extract_resume_from_pdf(pdf_bytes: bytes) -> dict:
 
     # Step 5: Try Gemini Vision
     try:
-        vision_text = extract_text_via_vision(pdf_bytes)
+        vision_text = extract_text_via_vision(pdf_bytes, provider)
         quality = assess_extraction_quality(vision_text)
 
         if quality["word_count"] >= 30:

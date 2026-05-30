@@ -98,43 +98,100 @@ def _score_section_detailed(
 
     # 2. Action verbs and quantified achievements (30%)
     action_verbs = {
-        'led', 'managed', 'developed', 'built', 'created', 'designed', 'implemented',
-        'optimized', 'improved', 'increased', 'decreased', 'reduced', 'saved', 'achieved',
-        'automated', 'established', 'coordinated', 'engineered', 'launched', 'delivered',
-        'formulated', 'spearheaded', 'generated', 'cultivated', 'streamlined', 'maximized',
-        'minimized', 'facilitated', 'executed', 'conducted', 'resolved', 'analyzed',
-        'programmed', 'coded', 'deployed', 'migrated', 'administered', 'collaborated'
+        # Leadership
+        'led', 'managed', 'directed', 'supervised', 'coordinated', 'oversaw',
+        'spearheaded', 'championed', 'mentored', 'coached', 'guided', 'delegated',
+        'motivated', 'empowered', 'influenced', 'inspired',
+        # Engineering / Building
+        'developed', 'built', 'created', 'designed', 'implemented', 'engineered',
+        'architected', 'programmed', 'coded', 'constructed', 'prototyped', 'assembled',
+        'configured', 'integrated', 'customized', 'authored', 'composed',
+        # Optimization / Improvement
+        'optimized', 'improved', 'enhanced', 'refined', 'upgraded', 'revamped',
+        'modernized', 'streamlined', 'accelerated', 'consolidated', 'simplified',
+        'standardized', 'strengthened', 'transformed', 'revitalized',
+        # Achievement / Impact
+        'increased', 'decreased', 'reduced', 'saved', 'achieved', 'attained',
+        'exceeded', 'surpassed', 'maximized', 'minimized', 'boosted', 'doubled',
+        'tripled', 'quadrupled', 'eliminated', 'prevented', 'earned', 'won',
+        # Automation / Technical
+        'automated', 'deployed', 'migrated', 'provisioned', 'containerized',
+        'orchestrated', 'scaled', 'monitored', 'debugged', 'troubleshot',
+        'refactored', 'maintained', 'patched', 'secured', 'hardened',
+        'benchmarked', 'profiled', 'instrumented',
+        # Analysis / Research
+        'analyzed', 'evaluated', 'assessed', 'investigated', 'researched',
+        'examined', 'identified', 'diagnosed', 'discovered', 'measured',
+        'quantified', 'validated', 'verified', 'tested', 'audited',
+        'reviewed', 'surveyed', 'forecasted', 'predicted', 'modeled',
+        # Communication / Collaboration
+        'collaborated', 'presented', 'communicated', 'documented', 'published',
+        'reported', 'liaised', 'negotiated', 'advocated', 'facilitated',
+        'translated', 'articulated', 'conveyed', 'trained', 'educated',
+        # Strategy / Planning
+        'established', 'launched', 'initiated', 'pioneered', 'introduced',
+        'formulated', 'devised', 'planned', 'strategized', 'proposed',
+        'recommended', 'defined', 'outlined', 'mapped', 'prioritized',
+        # Operations / Process
+        'executed', 'conducted', 'resolved', 'delivered', 'generated',
+        'cultivated', 'administered', 'processed', 'organized', 'restructured',
+        'allocated', 'distributed', 'sourced', 'procured', 'budgeted',
     }
     words = re.findall(r'[a-zA-Z]+', section_text.lower())
     verb_matches = sum(1 for w in words if w in action_verbs)
-    
-    # Quantified achievements: count occurrences of percentages, numbers, metrics (e.g. 30%, $10k, 3x)
-    metrics_matches = len(re.findall(r'\b\d+(?:[\d,.]*\d)?%?|\b\d+x\b|\$\d+', section_text))
-    
-    action_score = min(100.0, (verb_matches * 35.0) + (metrics_matches * 30.0))
+
+    # Quantified achievements: percentages, dollar amounts, multipliers, large numbers with context
+    # Excludes bare 4-digit years (2020-2029) and phone-like patterns
+    metrics_matches = len(re.findall(
+        r'\b\d+(?:[\d,.]*\d)?%'
+        r'|\$\d+[\d,.kKmMbB]*'
+        r'|\b\d+x\b'
+        r'|\b\d+[+]\s*(?:users?|people|customers?|clients?|projects?|employees?|teams?|members?)'
+        r'|\b(?:top|first)\s*\d+',
+        section_text, re.IGNORECASE
+    ))
+
+    action_score = min(100.0, (verb_matches * 25.0) + (metrics_matches * 30.0))
     if section_name in ("skills", "education", "certifications"):
         # For non-narrative sections, score based on content richness
         items_count = len(section_text.split(',')) if section_name == "skills" else len(section_text.split('\n'))
         action_score = min(100.0, items_count * 20.0)
 
     # 3. Formatting clarity (20%)
-    has_bullets = any(char in section_text for char in ('•', '·', '▪', '▸', '→', '*', '- '))
+    has_bullets = any(char in section_text for char in ('\u2022', '\u00b7', '\u25aa', '\u25b8', '\u2192', '*', '- '))
     has_dates = bool(re.search(r'\b(19|20)\d{2}\b|present|current', section_text, re.IGNORECASE))
     lines = [line for line in section_text.split('\n') if line.strip()]
-    good_structure = len(lines) >= 2 or len(section_text) < 150
-    
+
     clarity_score = 0.0
-    if has_bullets or section_name in ("summary", "skills"):
+    if has_bullets:
         clarity_score += 40.0
+    elif section_name == "summary":
+        # Summary doesn't need bullets — give partial credit for prose
+        clarity_score += 25.0 if len(section_text) > 50 else 10.0
+    elif section_name == "skills":
+        # Skills with comma-separated lists get partial credit
+        clarity_score += 30.0 if ',' in section_text else 15.0
     else:
         if len(lines) >= 2:
             clarity_score += 30.0
-        
-    if has_dates or section_name in ("summary", "skills"):
-        clarity_score += 40.0
-        
-    if good_structure:
+
+    if has_dates:
+        clarity_score += 30.0
+    elif section_name in ("summary", "skills"):
+        # These sections don't typically have dates — give partial credit
+        clarity_score += 15.0
+
+    # Structure bonus
+    if len(lines) >= 2 or (section_name == "summary" and len(section_text) >= 100):
         clarity_score += 20.0
+
+    # Readability: penalize very long bullets (wall of text)
+    if section_name not in ("summary", "skills"):
+        avg_line_len = sum(len(l) for l in lines) / max(len(lines), 1)
+        if avg_line_len > 200:  # very long bullets
+            clarity_score = max(0, clarity_score - 15.0)
+
+    clarity_score = min(100.0, clarity_score)
 
     # 4. Relevance to job description (10%)
     semantic_score = calculate_semantic_similarity(section_text, jd)
@@ -179,12 +236,15 @@ def score(resume_text: str, job_description: str) -> Dict:
         combined_sections[section_name] = round(float(sec_score), 1)
 
     # Overall: weighted average of combined section scores
+    # Redistribute weight from truly empty sections so they don't drag score down
     overall = 0.0
     total_weight = 0.0
     for section_name, weight in SECTION_WEIGHTS.items():
-        if section_name in combined_sections:
+        section_text = sections.get(section_name, "")
+        if section_name in combined_sections and section_text.strip():
             overall += combined_sections[section_name] * weight
             total_weight += weight
+        # Don't add weight for empty sections — redistributes naturally
     if total_weight > 0:
         overall = overall / total_weight
 
@@ -232,6 +292,67 @@ _JD_STOP_WORDS = {
     'looking', 'seeking', 'join', 'candidate', 'ideal', 'strong',
     'ability', 'skills', 'experience', 'years', 'year', 'day', 'days',
 }
+
+
+# ---------------------------------------------------------------------------
+# Tech synonym / alias mapping — so "JS" matches "JavaScript", etc.
+# ---------------------------------------------------------------------------
+TECH_SYNONYMS = {
+    "javascript": ["js", "ecmascript", "es6", "es2015"],
+    "typescript": ["ts"],
+    "python": ["py"],
+    "machine learning": ["ml"],
+    "artificial intelligence": ["ai"],
+    "kubernetes": ["k8s", "kube"],
+    "amazon web services": ["aws"],
+    "google cloud platform": ["gcp"],
+    "microsoft azure": ["azure"],
+    "continuous integration": ["ci"],
+    "continuous deployment": ["cd"],
+    "ci/cd": ["cicd", "ci cd", "ci-cd"],
+    "react.js": ["reactjs", "react"],
+    "node.js": ["nodejs", "node"],
+    "vue.js": ["vuejs", "vue"],
+    "angular.js": ["angularjs", "angular"],
+    "next.js": ["nextjs", "next"],
+    "postgresql": ["postgres", "psql", "pgsql"],
+    "mongodb": ["mongo"],
+    "elasticsearch": ["elastic"],
+    "docker": ["containerization"],
+    "terraform": ["tf"],
+    "infrastructure as code": ["iac"],
+    "application programming interface": ["api", "apis"],
+    "representational state transfer": ["rest", "restful"],
+    "graphql": ["gql"],
+    "structured query language": ["sql"],
+    "nosql": ["no-sql"],
+    "natural language processing": ["nlp"],
+    "computer vision": ["cv"],
+    "deep learning": ["dl"],
+    "large language model": ["llm", "llms"],
+    "devops": ["dev-ops", "dev ops"],
+    "site reliability engineering": ["sre"],
+    "object oriented programming": ["oop"],
+    "test driven development": ["tdd"],
+    "user interface": ["ui"],
+    "user experience": ["ux"],
+    "html": ["html5"],
+    "css": ["css3", "cascading style sheets"],
+    "sass": ["scss"],
+    "apache kafka": ["kafka"],
+    "amazon s3": ["s3"],
+    "amazon ec2": ["ec2"],
+    "amazon lambda": ["lambda", "aws lambda"],
+    "amazon eks": ["eks"],
+    "power bi": ["powerbi", "power-bi"],
+}
+
+# Build reverse lookup: alias → canonical
+_SYNONYM_REVERSE = {}
+for _canonical, _aliases in TECH_SYNONYMS.items():
+    for _alias in _aliases:
+        _SYNONYM_REVERSE[_alias.lower()] = _canonical.lower()
+    _SYNONYM_REVERSE[_canonical.lower()] = _canonical.lower()
 
 
 def extract_jd_keywords(jd: str) -> Dict:
@@ -323,13 +444,13 @@ def _extract_title_terms(jd: str) -> List[str]:
     return [w for w in words if len(w) > 2 and w not in _JD_STOP_WORDS]
 
 
-def _extract_ngrams(text: str, max_n: int = 2) -> List[str]:
+def _extract_ngrams(text: str, max_n: int = 3) -> List[str]:
     """
-    Extract 1–2 word n-grams from text, cleaned and lower-cased.
-    Capped at bigrams to prevent meaningless tri-gram keyword explosions.
+    Extract 1–3 word n-grams from text, cleaned and lower-cased.
+    Supports trigrams for multi-word tech terms (e.g., "machine learning engineer").
     """
     # Normalise: strip bullets, punctuation (keep hyphens inside words)
-    text = re.sub(r'[•·▪▸→*]', ' ', text)
+    text = re.sub(r'[\u2022\u00b7\u25aa\u25b8\u2192*]', ' ', text)
     text = re.sub(r'[^\w\s\-/]', ' ', text)
     words = [w.lower().strip('-') for w in text.split() if len(w) > 1 and not w.isdigit()]
     words = [w for w in words if w not in _JD_STOP_WORDS]
@@ -408,12 +529,25 @@ def score_keyword_based(resume_text: str, job_description: str, jd_keywords: Dic
 
 def _term_in_text(term: str, text_lower: str) -> bool:
     """Check if a term (possibly multi-word) appears as a whole phrase in text.
+    Also checks known tech synonyms/aliases for the term.
     Both term and text_lower are expected to be lowercase already.
     """
-    escaped = re.escape(term.lower())
-    # Use word boundary that works with multi-word phrases
-    pattern = r'(?<![a-z])' + escaped + r'(?![a-z])'
-    return bool(re.search(pattern, text_lower))
+    terms_to_check = [term.lower()]
+    # Add canonical form if term is an alias
+    canonical = _SYNONYM_REVERSE.get(term.lower())
+    if canonical and canonical != term.lower():
+        terms_to_check.append(canonical)
+    # Add all aliases if term is canonical
+    if term.lower() in TECH_SYNONYMS:
+        terms_to_check.extend(a.lower() for a in TECH_SYNONYMS[term.lower()])
+
+    for t in set(terms_to_check):
+        escaped = re.escape(t)
+        # Use word boundary that works with multi-word phrases
+        pattern = r'(?<![a-z])' + escaped + r'(?![a-z])'
+        if re.search(pattern, text_lower):
+            return True
+    return False
 
 
 # Section-domain hints: which keyword tiers are most relevant per section
@@ -435,26 +569,38 @@ def _score_section_keywords(
 ) -> Tuple[float, Set[str]]:
     """
     Score a single section against keyword list.
+    Normalizes against top-25 most relevant keywords (not ALL) to avoid
+    artificially low scores when the JD has many terms.
+    Applies section-domain weight boosts from _SECTION_DOMAIN_WEIGHT.
     Returns (raw_score 0-1, matched_terms set).
     """
     if not section_text.strip() or not all_kw:
         return 0.0, set()
 
     text_lower = section_text.lower()
-    total_score   = 0.0
-    max_possible  = 0.0
     matched_terms: Set[str] = set()
+    matched_weight = 0.0
 
+    # Check ALL keywords for matches
     for term, weight in all_kw:
         if _term_in_text(term, text_lower):
-            total_score += weight
+            matched_weight += weight
             matched_terms.add(term)
-        max_possible += weight
+
+    # Normalize against top-25 most relevant keywords (by weight)
+    sorted_kw = sorted(all_kw, key=lambda x: x[1], reverse=True)
+    top_kw = sorted_kw[:25]
+    max_possible = sum(w for _, w in top_kw)
 
     if max_possible == 0:
         return 0.0, set()
 
-    return total_score / max_possible, matched_terms
+    # Apply section domain weight boost (was previously dead code)
+    domain_weights = _SECTION_DOMAIN_WEIGHT.get(section_name, (1.0, 1.0, 1.0))
+    domain_boost = sum(domain_weights) / 3.0  # average boost for this section
+
+    raw_score = (matched_weight / max_possible) * domain_boost
+    return min(1.0, raw_score), matched_terms
 
 
 # ---------------------------------------------------------------------------
@@ -523,19 +669,20 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
 
     # Plain text: match section headers
     header_patterns = {
-        "summary":        [r"summary", r"professional summary", r"profile",
-                           r"objective", r"about me"],
+        "summary":        [r"summary", r"professional summary", r"summary of qualifications",
+                           r"profile", r"professional profile", r"objective", r"career objective",
+                           r"about me"],
         "education":      [r"education", r"academic background", r"academics",
-                           r"qualification"],
+                           r"academic qualifications?", r"qualification"],
         "projects":       [r"projects?", r"personal projects?", r"academic projects?",
-                           r"key projects?"],
-        "internship":     [r"internship", r"experience", r"work experience",
-                           r"employment", r"professional experience",
-                           r"relevant experience"],
-        "skills":         [r"skills?", r"technical skills?", r"competenc(?:y|ies)",
-                           r"expertise", r"technologies"],
+                           r"key projects?", r"relevant projects?", r"technical projects?"],
+        "internship":     [r"internships?", r"experience", r"work experience", r"employment",
+                           r"employment history", r"professional experience", r"relevant experience",
+                           r"professional history"],
+        "skills":         [r"skills?", r"technical skills?", r"core competencies", r"key skills?",
+                           r"competenc(?:y|ies)", r"expertise", r"technologies"],
         "certifications": [r"certifications?", r"certificates?", r"licenses?",
-                           r"credentials?"],
+                           r"credentials?", r"courses?"],
     }
 
     lines = resume_text.split('\n')

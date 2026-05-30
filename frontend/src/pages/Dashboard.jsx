@@ -10,6 +10,27 @@ import './Dashboard.css';
 function Dashboard() {
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [provider, setProvider] = useState(() => {
+    return localStorage.getItem('llm_provider') || 'gemini';
+  });
+
+  const handleProviderChange = (e) => {
+    const val = e.target.value;
+    setProvider(val);
+    localStorage.setItem('llm_provider', val);
+  };
+
+  const [personalKey, setPersonalKey] = useState(() => {
+    return localStorage.getItem('personal_gemini_key') || '';
+  });
+  const [showKey, setShowKey] = useState(false);
+
+  const handlePersonalKeyChange = (e) => {
+    const val = e.target.value.trim();
+    setPersonalKey(val);
+    localStorage.setItem('personal_gemini_key', val);
+  };
+
   const [atsScores, setATSScores] = useState({ before: null, after: null });
   const [sectionScores, setSectionScores] = useState({ before: {}, after: null });
   const [rewrittenResume, setRewrittenResume] = useState(null);
@@ -22,8 +43,14 @@ function Dashboard() {
   const [feedbackReason, setFeedbackReason] = useState('');
   const [missingKeywords, setMissingKeywords] = useState([]);
   const [matchedKeywords, setMatchedKeywords] = useState([]);
+  const [improvementTips, setImprovementTips] = useState([]);
 
   const analyzeResume = async () => {
+    if (provider === 'personal_gemini' && !personalKey.trim()) {
+      alert('Please enter your personal Gemini API key first.');
+      return;
+    }
+
     if (!resumeText.trim() || !jobDescription.trim()) {
       alert('Please fill in both resume and job description');
       return;
@@ -38,7 +65,8 @@ function Dashboard() {
     try {
       const response = await api.post('/resume/analyze', {
         resume_text: resumeText,
-        job_description: jobDescription
+        job_description: jobDescription,
+        provider: provider
       });
 
       setATSScores({ before: response.data.overall_score, after: null });
@@ -55,6 +83,11 @@ function Dashboard() {
   };
 
   const rewriteResume = async () => {
+    if (provider === 'personal_gemini' && !personalKey.trim()) {
+      alert('Please enter your personal Gemini API key first.');
+      return;
+    }
+
     if (!resumeText.trim() || !jobDescription.trim()) {
       alert('Please fill in both resume and job description');
       return;
@@ -67,7 +100,8 @@ function Dashboard() {
     try {
       const response = await api.post('/resume/rewrite', {
         resume_text: resumeText,
-        job_description: jobDescription
+        job_description: jobDescription,
+        provider: provider
       });
 
       const d = response.data;
@@ -82,6 +116,7 @@ function Dashboard() {
       });
       setMissingKeywords(d.missing_keywords || []);
       setMatchedKeywords(d.matched_keywords || []);
+      setImprovementTips(d.improvement_tips || []);
       setRewrittenResume(d.rewritten_json);
       setSessionId(d.session_id);
       // Stay on Scores tab so user immediately sees improvement
@@ -192,9 +227,66 @@ function Dashboard() {
               Resume Optimizer
             </h1>
             
-            <p className="hero-subtitle animate-in" style={{ animationDelay: '120ms' }}>
+            <p className="hero-subtitle animate-in" style={{ animationDelay: '120ms', marginBottom: '16px' }}>
               Paste your resume and job description to begin
             </p>
+
+            <div className="provider-selector-container animate-in" style={{ animationDelay: '140ms', margin: '0 auto 24px', maxWidth: '320px' }}>
+              <label htmlFor="provider-select" className="provider-select-label" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em', color: 'var(--text-secondary)', marginRight: '8px' }}>
+                AI PROVIDER:
+              </label>
+              <select
+                id="provider-select"
+                value={provider}
+                onChange={handleProviderChange}
+                className="provider-select"
+              >
+                <option value="gemini">Gemini (Cloud Rotation)</option>
+                <option value="personal_gemini">Personal Gemini API Key</option>
+                <option value="ollama">Ollama (Local / Offline)</option>
+                <option value="openrouter">OpenRouter (Any Model API)</option>
+              </select>
+            </div>
+
+            {provider === 'personal_gemini' && (
+              <div className="personal-key-container animate-in">
+                <div className="personal-key-label">
+                  <span>Enter Gemini API Key</span>
+                  {personalKey && (
+                    <span className="personal-key-saved-badge">
+                      ✓ Saved Locally
+                    </span>
+                  )}
+                </div>
+                <div className="personal-key-input-wrapper">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    placeholder="AIzaSy..."
+                    value={personalKey}
+                    onChange={handlePersonalKeyChange}
+                    className="personal-key-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="personal-key-toggle-btn"
+                    title={showKey ? 'Hide key' : 'Show key'}
+                  >
+                    {showKey ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="stepper animate-in" style={{ animationDelay: '160ms', justifyContent: 'center' }}>
               {renderStep(1, 'Paste Resume', step1State, true)}
@@ -214,6 +306,7 @@ function Dashboard() {
             onRewrite={rewriteResume}
             loading={loading}
             canRewrite={atsScores.before !== null && atsScores.before !== undefined}
+            provider={provider}
           />
         </div>
 
@@ -268,6 +361,7 @@ function Dashboard() {
                   sectionScoresAfter={sectionScores.after}
                   missingKeywords={missingKeywords}
                   matchedKeywords={matchedKeywords}
+                  improvementTips={improvementTips}
                   loading={loading.analyze || loading.rewrite}
                 />
               )}

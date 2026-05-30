@@ -1,4 +1,8 @@
 import os
+import sys
+# Prevent passlib from dynamically loading bcrypt, which crashes with ValueError on Python 3.12+
+sys.modules['bcrypt'] = None
+
 import logging
 from datetime import datetime, timedelta, timezone
 

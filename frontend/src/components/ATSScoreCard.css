@@ -215,3 +215,132 @@
   color: var(--accent-green);
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
+
+.keyword-chip--more {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-tertiary);
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  font-style: italic;
+}
+
+/* ── Section mini score bars ─────────────────────────────────── */
+.section-mini-bar-track {
+  margin-top: 6px;
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 9999px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.section-mini-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.section-mini-bar-fill.band-green { background: var(--accent-green); }
+.section-mini-bar-fill.band-amber { background: var(--accent-amber); }
+.section-mini-bar-fill.band-red   { background: var(--accent-red); }
+.section-mini-bar-fill.band-none  { background: var(--border); }
+
+/* ── Keyword coverage progress ───────────────────────────────── */
+.keyword-coverage-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keyword-coverage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.keyword-coverage-header h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.keyword-coverage-ratio {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.keyword-coverage-bar-track {
+  height: 10px;
+  background: var(--bg-elevated);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.keyword-coverage-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 4px;
+}
+
+.keyword-coverage-pct {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+
+/* ── Improvement tips ────────────────────────────────────────── */
+.improvement-tips-panel {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.20);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.improvement-tips-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.improvement-tips-icon {
+  font-size: 18px;
+}
+
+.improvement-tips-header h4 {
+  margin: 0;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.improvement-tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.improvement-tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.tip-bullet {
+  flex-shrink: 0;
+  font-size: 12px;
+  margin-top: 2px;
+}

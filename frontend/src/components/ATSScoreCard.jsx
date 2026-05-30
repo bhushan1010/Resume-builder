@@ -26,6 +26,7 @@ const ATSScoreCard = ({
   sectionScoresAfter,
   missingKeywords = [],
   matchedKeywords = [],
+  improvementTips = [],
 }) => {
   const [animatedBefore, setAnimatedBefore] = useState(0);
   const [animatedAfter,  setAnimatedAfter]  = useState(0);
@@ -130,6 +131,7 @@ const ATSScoreCard = ({
               const after  = r1(sectionScoresAfter?.[key]  ?? 0);
               const change = r1(after - before);
               const absent = !sectionScoresBefore?.[key] && !sectionScoresAfter?.[key];
+              const showAfterBar = sectionScoresAfter && sectionScoresAfter[key] != null;
 
               let changeColor = 'var(--text-tertiary)';
               let changeBg    = 'transparent';
@@ -139,7 +141,16 @@ const ATSScoreCard = ({
 
               return (
                 <div key={key} className="breakdown-row">
-                  <div className="breakdown-section-name">{label}</div>
+                  <div className="breakdown-section-name">
+                    {label}
+                    {/* Mini score bar under the section name */}
+                    <div className="section-mini-bar-track">
+                      <div
+                        className={`section-mini-bar-fill ${scoreBand(showAfterBar ? after : before)}`}
+                        style={{ width: `${Math.min(showAfterBar ? after : before, 100)}%` }}
+                      />
+                    </div>
+                  </div>
 
                   {/* Before score with colour band */}
                   <div className="breakdown-score">
@@ -173,6 +184,30 @@ const ATSScoreCard = ({
         </div>
       )}
 
+      {/* ── Keyword coverage progress ── */}
+      {(hasMatched || hasMissing) && (
+        <div className="keyword-coverage-section">
+          <div className="keyword-coverage-header">
+            <h3>Keyword Coverage</h3>
+            <span className="keyword-coverage-ratio">
+              {matchedKeywords.length} / {matchedKeywords.length + missingKeywords.length} matched
+            </span>
+          </div>
+          <div className="keyword-coverage-bar-track">
+            <div
+              className="keyword-coverage-bar-fill"
+              style={{
+                width: `${(matchedKeywords.length / Math.max(matchedKeywords.length + missingKeywords.length, 1)) * 100}%`,
+                background: `linear-gradient(90deg, var(--accent-green), ${(matchedKeywords.length / Math.max(matchedKeywords.length + missingKeywords.length, 1)) > 0.6 ? 'var(--accent-green)' : 'var(--accent-amber)'})`
+              }}
+            />
+          </div>
+          <div className="keyword-coverage-pct">
+            {Math.round((matchedKeywords.length / Math.max(matchedKeywords.length + missingKeywords.length, 1)) * 100)}% coverage
+          </div>
+        </div>
+      )}
+
       {/* ── Missing keywords panel ── */}
       {hasMissing && (
         <div className="keywords-panel keywords-panel--missing">
@@ -182,9 +217,12 @@ const ATSScoreCard = ({
             <span className="keywords-panel-hint">Add these to boost your ATS score</span>
           </div>
           <div className="keywords-list">
-            {missingKeywords.map((kw) => (
+            {missingKeywords.slice(0, 20).map((kw) => (
               <span key={kw} className="keyword-chip keyword-chip--missing">{kw}</span>
             ))}
+            {missingKeywords.length > 20 && (
+              <span className="keyword-chip keyword-chip--more">+{missingKeywords.length - 20} more</span>
+            )}
           </div>
         </div>
       )}
@@ -197,10 +235,31 @@ const ATSScoreCard = ({
             <h4>Keywords Matched</h4>
           </div>
           <div className="keywords-list">
-            {matchedKeywords.map((kw) => (
+            {matchedKeywords.slice(0, 25).map((kw) => (
               <span key={kw} className="keyword-chip keyword-chip--matched">{kw}</span>
             ))}
+            {matchedKeywords.length > 25 && (
+              <span className="keyword-chip keyword-chip--more">+{matchedKeywords.length - 25} more</span>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* ── Improvement suggestions ── */}
+      {improvementTips && improvementTips.length > 0 && (
+        <div className="improvement-tips-panel">
+          <div className="improvement-tips-header">
+            <span className="improvement-tips-icon">💡</span>
+            <h4>Improvement Suggestions</h4>
+          </div>
+          <ul className="improvement-tips-list">
+            {improvementTips.map((tip, idx) => (
+              <li key={idx} className="improvement-tip-item">
+                <span className="tip-bullet">{tip.startsWith('Great') || tip.startsWith('Good') ? '🟢' : '🔶'}</span>
+                <span>{tip}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

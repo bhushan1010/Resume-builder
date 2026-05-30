@@ -231,3 +231,137 @@
   padding: 24px;
   overflow-y: auto;
 }
+
+/* Provider Selector premium styling */
+.provider-selector-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  padding: 8px 18px;
+  border-radius: 50px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: all 200ms ease;
+}
+
+.provider-selector-container:hover {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+}
+
+.provider-select {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  padding-right: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Add custom arrow */
+.provider-selector-container::after {
+  content: '▼';
+  font-size: 9px;
+  color: var(--text-secondary);
+  margin-left: 2px;
+  pointer-events: none;
+}
+
+.provider-select option {
+  background: #11131e;
+  color: var(--text-primary);
+}
+
+/* Custom Gemini Key styling */
+.personal-key-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 320px;
+  margin: -8px auto 24px;
+  animation: fadeIn 200ms ease;
+}
+
+.personal-key-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.personal-key-input {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 10px 40px 10px 14px;
+  border-radius: 8px;
+  outline: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: all 200ms ease;
+}
+
+.personal-key-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+}
+
+.personal-key-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 200ms ease;
+}
+
+.personal-key-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.personal-key-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  align-self: flex-start;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.personal-key-saved-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
