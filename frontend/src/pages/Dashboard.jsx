@@ -66,7 +66,8 @@ function Dashboard() {
       const response = await api.post('/resume/analyze', {
         resume_text: resumeText,
         job_description: jobDescription,
-        provider: provider
+        provider: provider,
+        api_key: provider === 'personal_gemini' ? personalKey : undefined
       });
 
       setATSScores({ before: response.data.overall_score, after: null });
@@ -101,7 +102,8 @@ function Dashboard() {
       const response = await api.post('/resume/rewrite', {
         resume_text: resumeText,
         job_description: jobDescription,
-        provider: provider
+        provider: provider,
+        api_key: provider === 'personal_gemini' ? personalKey : undefined
       });
 
       const d = response.data;
@@ -307,6 +309,7 @@ function Dashboard() {
             loading={loading}
             canRewrite={atsScores.before !== null && atsScores.before !== undefined}
             provider={provider}
+            apiKey={personalKey}
           />
         </div>
 

@@ -447,20 +447,27 @@ def _extract_title_terms(jd: str) -> List[str]:
 def _extract_ngrams(text: str, max_n: int = 3) -> List[str]:
     """
     Extract 1–3 word n-grams from text, cleaned and lower-cased.
-    Supports trigrams for multi-word tech terms (e.g., "machine learning engineer").
+    Avoids gluing words across punctuation boundaries by chunking first.
     """
-    # Normalise: strip bullets, punctuation (keep hyphens inside words)
-    text = re.sub(r'[\u2022\u00b7\u25aa\u25b8\u2192*]', ' ', text)
-    text = re.sub(r'[^\w\s\-/]', ' ', text)
-    words = [w.lower().strip('-') for w in text.split() if len(w) > 1 and not w.isdigit()]
-    words = [w for w in words if w not in _JD_STOP_WORDS]
-
+    # Split text by clause-breaking punctuation so we don't glue words across them
+    chunks = re.split(r'[,.;:!?()[\]{}|/]| - | \u2013 | \u2014 ', text)
+    
     ngrams = []
-    for n in range(1, max_n + 1):
-        for i in range(len(words) - n + 1):
-            gram = ' '.join(words[i:i + n])
-            if gram.strip():
-                ngrams.append(gram)
+    for chunk in chunks:
+        # Strip bullets
+        chunk = re.sub(r'[\u2022\u00b7\u25aa\u25b8\u2192*]', ' ', chunk)
+        # Remove remaining punctuation except intra-word hyphens
+        chunk = re.sub(r'[^\w\s\-]', ' ', chunk)
+        
+        words = [w.lower().strip('-') for w in chunk.split() if len(w) > 1 and not w.isdigit()]
+        words = [w for w in words if w not in _JD_STOP_WORDS]
+        
+        for n in range(1, max_n + 1):
+            for i in range(len(words) - n + 1):
+                gram = ' '.join(words[i:i + n])
+                if gram.strip():
+                    ngrams.append(gram)
+                    
     return ngrams
 
 
@@ -636,31 +643,31 @@ def split_resume_into_sections(resume_text: str) -> Dict[str, str]:
 
             for edu in parsed_json.get("education", []):
                 sections["education"] += (
-                    f"{edu.get('institution', '')} {edu.get('degree', '')} "
-                    f"{edu.get('duration', '')}\n"
+                    f"{edu.get('institution', '')} - {edu.get('degree', '')}\n"
+                    f"{edu.get('duration', '')}\n\n"
                 )
 
             for proj in parsed_json.get("projects", []):
-                bullets = " ".join(proj.get("bullets", []))
+                bullets = "\n".join(f"\u2022 {b}" for b in proj.get("bullets", []))
                 sections["projects"] += (
-                    f"{proj.get('name', '')} {proj.get('duration', '')} {bullets}\n"
+                    f"{proj.get('name', '')} | {proj.get('duration', '')}\n{bullets}\n\n"
                 )
 
             for exp in parsed_json.get("internship", []):
-                bullets = " ".join(exp.get("bullets", []))
+                bullets = "\n".join(f"\u2022 {b}" for b in exp.get("bullets", []))
                 sections["internship"] += (
-                    f"{exp.get('company', '')} {exp.get('role', '')} "
-                    f"{exp.get('duration', '')} {bullets}\n"
+                    f"{exp.get('company', '')} - {exp.get('role', '')}\n"
+                    f"{exp.get('duration', '')}\n{bullets}\n\n"
                 )
 
             for skill in parsed_json.get("skills", []):
                 sections["skills"] += (
-                    f"{skill.get('category', '')} {skill.get('items', '')}\n"
+                    f"{skill.get('category', '')}: {skill.get('items', '')}\n"
                 )
 
             for cert in parsed_json.get("certifications", []):
                 sections["certifications"] += (
-                    f"{cert.get('name', '')} {cert.get('duration', '')}\n"
+                    f"{cert.get('name', '')} - {cert.get('duration', '')}\n"
                 )
 
             return sections

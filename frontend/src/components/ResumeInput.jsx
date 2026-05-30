@@ -7,7 +7,7 @@ const ResumeInput = ({
   jobDescription, setJobDescription, 
   onAnalyze, onRewrite, 
   loading, canRewrite,
-  provider
+  provider, apiKey
 }) => {
   // Internal state for PDF upload
   const [activeInputTab, setActiveInputTab] = useState('pdf'); // 'pdf' | 'text'
@@ -43,11 +43,15 @@ const ResumeInput = ({
     setConfidenceInfo(null);
 
     try {
-      // Create FormData and send to backend
       const formData = new FormData();
       formData.append('pdf_file', file);
       
-      const response = await api.post(`/resume/extract-pdf?provider=${provider || 'gemini'}`, formData, {
+      let url = `/resume/extract-pdf?provider=${provider || 'gemini'}`;
+      if (provider === 'personal_gemini' && apiKey) {
+        url += `&api_key=${encodeURIComponent(apiKey)}`;
+      }
+
+      const response = await api.post(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

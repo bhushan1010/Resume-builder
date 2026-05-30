@@ -31,12 +31,16 @@ class AnalyzeRequest(BaseModel):
     resume_text: str
     job_description: str
     provider: str = None
+    api_key: str = None
+
 
 
 class RewriteRequest(BaseModel):
     resume_text: str
     job_description: str
     provider: str = None
+    api_key: str = None
+
 
 
 class FeedbackRequest(BaseModel):
@@ -73,6 +77,9 @@ async def analyze_resume(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
+    if request.api_key:
+        gemini.personal_gemini_key.set(request.api_key)
+
     # FIXED: ats_scorer.score is CPU/IO heavy (sentence transformer + Gemini calls).
     # Wrapping in threadpool prevents blocking the event loop.
     result = await run_in_threadpool(
@@ -95,6 +102,9 @@ async def rewrite_resume(
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
 ):
+    if request.api_key:
+        gemini.personal_gemini_key.set(request.api_key)
+
     # FIXED: every blocking call below is now wrapped in run_in_threadpool.
     # Without this, a single /rewrite request blocks the entire FastAPI
     # event loop for 30-60+ seconds, freezing all other requests.
@@ -228,6 +238,7 @@ async def export_resume_pdf(
 @router.post("/extract-pdf")
 async def extract_resume_from_pdf_endpoint(
     provider: str = None,
+    api_key: str = None,
     pdf_file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: user_model.User = Depends(get_current_user)
@@ -236,6 +247,9 @@ async def extract_resume_from_pdf_endpoint(
     Extract text from uploaded PDF resume.
     Returns extraction result with confidence assessment.
     """
+    if api_key:
+        gemini.personal_gemini_key.set(api_key)
+
     # FIXED: stream-read with hard size cap to prevent DoS via huge uploads.
     # Without this, an attacker could upload a 1GB+ file and your server
     # would load the entire thing into RAM before validating.
