@@ -14,4 +14,5 @@ sentence-transformers
 scikit-learn
 numpy
 textblob
-nltkpdfkit==1.0.0
+nltk
+pdfkit==1.0.0
