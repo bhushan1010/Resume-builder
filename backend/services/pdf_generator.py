@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import logging
 from datetime import datetime
@@ -17,8 +18,42 @@ OUTPUTS_DIR = os.path.abspath(
 SAVE_OUTPUTS = os.getenv("SAVE_PDF_OUTPUTS", "true").lower() == "true"
 OUTPUT_RETENTION_DAYS = int(os.getenv("PDF_OUTPUT_RETENTION_DAYS", "7"))
 
-# Adjust this path based on where we installed the binary
-WKHTMLTOPDF_PATH = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+# Repo root = two levels up from backend/services/
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# Binary name differs by platform (Windows ships wkhtmltopdf.exe)
+_WK_BINARY = "wkhtmltopdf.exe" if os.name == "nt" else "wkhtmltopdf"
+
+
+def _resolve_wkhtmltopdf_path() -> str | None:
+    """
+    Locate the wkhtmltopdf binary, in priority order:
+      1. WKHTMLTOPDF_PATH env var (explicit override)
+      2. Binary bundled in the repo (wkhtmltox/bin/)
+      3. Standard Windows install location
+      4. Anything on the system PATH
+    Returns the resolved path, or None if the binary can't be found.
+    """
+    candidates = [
+        os.getenv("WKHTMLTOPDF_PATH"),
+        os.path.join(_REPO_ROOT, "wkhtmltox", "bin", _WK_BINARY),
+        r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
+    ]
+    for path in candidates:
+        if path and os.path.isfile(path):
+            return path
+    return shutil.which("wkhtmltopdf")
+
+
+# Resolved once at import; may be None if the engine isn't installed.
+WKHTMLTOPDF_PATH = _resolve_wkhtmltopdf_path()
+if WKHTMLTOPDF_PATH:
+    logger.info(f"wkhtmltopdf resolved to: {WKHTMLTOPDF_PATH}")
+else:
+    logger.warning(
+        "wkhtmltopdf binary not found. Set WKHTMLTOPDF_PATH or install the engine; "
+        "PDF export will fail until then."
+    )
 
 def _ensure_outputs_dir():
     try:
@@ -72,19 +107,17 @@ def generate(
     Returns PDF as bytes.
     """
     try:
-        # Check if the wkhtmltopdf executable exists where we expect it
-        if not os.path.exists(WKHTMLTOPDF_PATH):
-            logger.error(f"wkhtmltopdf binary not found at {WKHTMLTOPDF_PATH}")
-            # As a fallback, try to run without configuration if it's in the system PATH
-            try:
-                config = pdfkit.configuration()
-            except IOError:
-                raise HTTPException(
-                    status_code=500,
-                    detail="PDF generation is not available on this server (wkhtmltopdf engine missing).",
-                )
+        # Resolve the engine fresh each call so a newly-set WKHTMLTOPDF_PATH or
+        # PATH change is picked up without a restart.
+        wkhtmltopdf_path = WKHTMLTOPDF_PATH or _resolve_wkhtmltopdf_path()
+        if wkhtmltopdf_path:
+            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
         else:
-            config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
+            logger.error("wkhtmltopdf binary not found in any known location")
+            raise HTTPException(
+                status_code=500,
+                detail="PDF generation is not available on this server (wkhtmltopdf engine missing).",
+            )
 
         # Set up Jinja2 environment
         template_dir = os.path.join(os.path.dirname(__file__), "..", "templates")

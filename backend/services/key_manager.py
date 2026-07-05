@@ -31,7 +31,8 @@ class GeminiKeyManager:
                 "minute_reset_at": time.time() + MINUTE_WINDOW,
                 "day_reset_at": time.time() + DAY_WINDOW,
                 "cooling_until": 0,                # 0 = not cooling
-                "exhausted_today": False
+                "exhausted_today": False,
+                "invalid": False                   # permanently disabled (suspended/revoked/bad key)
             })
         self.current_index = 0
         self.lock = threading.Lock()
@@ -70,7 +71,8 @@ class GeminiKeyManager:
                 self._reset_expired_counters(key_state, now)
 
                 # Check if key is available
-                if (key_state["cooling_until"] <= now and
+                if (not key_state["invalid"] and
+                        key_state["cooling_until"] <= now and
                         key_state["requests_this_minute"] < RPM_SAFE_LIMIT and
                         not key_state["exhausted_today"]):
                     # Use this key
@@ -115,6 +117,23 @@ class GeminiKeyManager:
                     )
                     break
 
+    def mark_invalid(self, key: str):
+        """Permanently disable a key (suspended, revoked, or otherwise rejected).
+        Unlike rate-limit/daily-exhaustion, this never auto-recovers."""
+        with self.lock:
+            for key_state in self.keys:
+                if key_state["key"] == key:
+                    key_state["invalid"] = True
+                    logger.error(
+                        f"🚫 Key ...{key_state['key_suffix']} marked INVALID "
+                        "(suspended/revoked). It will be skipped from now on."
+                    )
+                    break
+
+    def available_count(self) -> int:
+        """Number of keys currently usable (not invalid/cooling/exhausted)."""
+        return sum(1 for k in self.get_status() if k["available"])
+
     def get_status(self) -> List[Dict[str, Any]]:
         with self.lock:
             status_list = []
@@ -127,7 +146,8 @@ class GeminiKeyManager:
                 cooling_seconds_remaining = max(0, int(key_state["cooling_until"] - now))
 
                 available = (
-                    not is_cooling
+                    not key_state["invalid"]
+                    and not is_cooling
                     and key_state["requests_this_minute"] < RPM_SAFE_LIMIT
                     and not key_state["exhausted_today"]
                 )
@@ -140,6 +160,7 @@ class GeminiKeyManager:
                     "is_cooling": is_cooling,
                     "cooling_seconds_remaining": cooling_seconds_remaining,
                     "exhausted_today": key_state["exhausted_today"],
+                    "invalid": key_state["invalid"],
                     "available": available
                 })
             return status_list

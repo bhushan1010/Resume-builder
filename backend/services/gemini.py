@@ -168,6 +168,16 @@ def call_gemini_with_rotation(
         if not custom_key:
             key = key_manager.get_available_key()
             if key is None:
+                # Distinguish "temporarily rate-limited" from "permanently dead".
+                all_invalid = all(
+                    k.get("invalid") for k in key_manager.get_status()
+                ) if key_manager.keys else False
+                if all_invalid:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="All configured Gemini API keys are invalid or suspended. "
+                               "Add a working key (GEMINI_KEY_1) or supply a personal key."
+                    )
                 raise HTTPException(
                     status_code=503,
                     detail="All API keys are currently rate limited. Please try again in about a minute."
@@ -214,6 +224,30 @@ def call_gemini_with_rotation(
             ) or (
                 ("rate" in error_str or "quota" in error_str) and not is_daily_exhausted
             )
+
+            # Detect a permanently-dead key (suspended, revoked, or malformed).
+            # These never recover, so skip the key and try the next one.
+            is_invalid_key = (
+                "consumer_suspended" in error_str or
+                "suspended" in error_str or
+                "permission_denied" in error_str or
+                "api key not valid" in error_str or
+                "api_key_invalid" in error_str or
+                "403" in error_code
+            )
+
+            if is_invalid_key and not (is_daily_exhausted or is_rate_limited):
+                if custom_key:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Your personal Gemini API key is invalid or suspended. "
+                               "Please check the key and try again."
+                    )
+                key_manager.mark_invalid(key)
+                logger.error(
+                    f"🚫 Key ...{key[-4:]} is invalid/suspended. Rotating to next key."
+                )
+                continue
 
             if is_daily_exhausted:
                 if custom_key:

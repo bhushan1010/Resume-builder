@@ -28,6 +28,15 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
+      - name: Install wkhtmltopdf (patched-Qt build for headless PDF rendering)
+        run: |
+          WK_DEB=wkhtmltox_0.12.6.1-3.jammy_amd64.deb
+          curl -sSLo "$WK_DEB" \
+            "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/$WK_DEB"
+          sudo apt-get update
+          sudo apt-get install -y "./$WK_DEB"
+          wkhtmltopdf --version
+
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 

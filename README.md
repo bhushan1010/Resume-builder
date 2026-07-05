@@ -4,25 +4,31 @@ A complete, production-ready web application that helps job seekers optimize the
 
 ## Overview
 
-The ATS Resume Rewriter analyzes your resume against a job description, provides weighted ATS scores, rewrites your resume to better match the job requirements using Google's Gemini AI, and generates a professional PDF output.
+The ATS Resume Rewriter analyzes your resume against a job description, provides weighted ATS scores, rewrites your resume to better match the job requirements using an AI model (Google Gemini by default, with OpenRouter and local Ollama also supported), and generates a professional PDF output.
 
 ## Tech Stack
 
 - **Frontend**: React + Vite (deployed on Vercel)
 - **Backend**: FastAPI (Python) (deployed on Render, Dockerized)
-- **AI**: Google Gemini 1.5 Flash API (free tier)
-- **Database**: SQLite + SQLAlchemy
-- **PDF Generation**: Tectonic (LaTeX engine) + Jinja2
-- **Authentication**: JWT + bcrypt
+- **AI**: Multi-provider LLM routing — Google Gemini (default, with API-key rotation), OpenRouter, or local Ollama
+- **ATS Scoring**: sentence-transformers (`all-MiniLM-L6-v2`) semantic similarity + weighted keyword matching
+- **Database**: SQLite + SQLAlchemy (Postgres-ready via `DATABASE_URL`)
+- **PDF Generation**: Jinja2 HTML template + wkhtmltopdf (via `pdfkit`)
+- **Authentication**: JWT + pbkdf2_sha256 password hashing
 
 ## Features
 
 - User registration and login with JWT authentication
-- Resume analysis with weighted ATS scoring (Summary, Education, Projects, Internship, Skills, Certifications)
-- AI-powered resume rewriting using Google Gemini 1.5 Flash
+- Resume analysis with weighted ATS scoring (Summary, Education, Projects, Internship, Skills, Certifications), combining semantic similarity and keyword matching
+- AI-powered resume rewriting with **multi-provider LLM routing** — Google Gemini (default), OpenRouter, or a local Ollama model
+- Resilient Gemini **API-key rotation** that handles per-minute rate limits, daily-quota exhaustion, and permanently suspended/invalid keys (dead keys are skipped automatically)
+- Optional per-request **personal Gemini key** (sent via the `X-Personal-Gemini-Key` header) to bypass shared-key limits
+- Fact-locking during rewrites (URLs, dates, numbers, names are preserved verbatim) plus keyword-coverage retries
+- Upload a **PDF resume** and have its text extracted automatically (PyMuPDF)
 - Section-by-section resume preview before and after rewriting
-- Professional PDF generation using LaTeX and Tectonic
-- History tracking of all resume optimization sessions
+- Professional PDF generation from an HTML template using wkhtmltopdf
+- History tracking with paginated listing, detail view, re-export, and deletion (GDPR-friendly)
+- Feedback loop: session ratings feed an industry-aware prompt learner that adapts future rewrites
 - Responsive design for mobile and desktop
 
 ## Project Structure
@@ -45,15 +51,15 @@ resume-builder/
 │   │   ├── history.py          # History routes
 │   │   └── status.py           # Health check routes
 │   ├── services/               # Business logic services
-│   │   ├── ats_scorer.py       # ATS scoring logic
-│   │   ├── gemini.py           # Gemini AI integration
-│   │   ├── key_manager.py      # API key management
-│   │   ├── latex_escape.py     # LaTeX text escaping
-│   │   ├── pdf_extractor.py    # PDF text extraction
-│   │   └── pdf_generator.py    # PDF generation service
+│   │   ├── ats_scorer.py       # Semantic + keyword ATS scoring
+│   │   ├── gemini.py           # Multi-provider LLM routing (Gemini/Ollama/OpenRouter)
+│   │   ├── key_manager.py      # Gemini API key rotation (rate-limit / suspended-key aware)
+│   │   ├── pattern_learner.py  # Industry detection + feedback-driven prompt adaptation
+│   │   ├── latex_escape.py     # Text escaping helpers
+│   │   ├── pdf_extractor.py    # PDF text extraction (PyMuPDF)
+│   │   └── pdf_generator.py    # HTML→PDF generation (Jinja2 + wkhtmltopdf)
 │   └── templates/              # Jinja2 templates
-│       ├── resume.tex.j2       # LaTeX resume template
-│       └── warmup.tex          # LaTeX warmup file
+│       └── resume.html.j2      # HTML resume template (rendered to PDF)
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx             # Main React app with routing
@@ -108,12 +114,18 @@ resume-builder/
    pip install -r requirements.txt
    ```
 
-3. Create a `.env` file in the backend directory:
+3. Create a `.env` file in the backend directory (see `backend/.env.example` for the
+   full list, including OpenRouter/Ollama options):
    ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   JWT_SECRET=your_secret_key_here
+   # One or more rotating Gemini keys (GEMINI_KEY_1 .. GEMINI_KEY_N)
+   GEMINI_KEY_1=your_gemini_api_key_here
+   JWT_SECRET=at_least_32_characters_random_string
    DATABASE_URL=sqlite:///./resume_rewriter.db
+   LLM_PROVIDER=gemini
    ```
+   > **Note:** `JWT_SECRET` must be at least 32 characters or the backend refuses to start.
+   > PDF export requires the `wkhtmltopdf` binary — set `WKHTMLTOPDF_PATH` if it isn't on
+   > your PATH or in the bundled `wkhtmltox/bin/` folder.
 
 4. Initialize the database:
    ```bash
@@ -149,9 +161,12 @@ The application will be available at `http://localhost:5173`.
 
 ### Backend (.env)
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
-JWT_SECRET=your_secret_key_here
+GEMINI_KEY_1=your_gemini_api_key_here   # add GEMINI_KEY_2, _3, ... for rotation
+JWT_SECRET=at_least_32_characters_random_string
 DATABASE_URL=sqlite:///./resume_rewriter.db
+ALLOWED_ORIGINS=http://localhost:5173
+LLM_PROVIDER=gemini                       # gemini | openrouter | ollama
+# WKHTMLTOPDF_PATH=C:\path\to\wkhtmltopdf.exe   # only if not auto-detected
 ```
 
 ### Frontend (.env)
@@ -179,8 +194,9 @@ VITE_API_URL=https://your-render-backend-url.onrender.com
    - Start Command: (leave empty)
    - Dockerfile Path: `./backend/Dockerfile`
 5. Add environment variables:
-   - `GEMINI_API_KEY` (from your Google AI Studio)
-   - `JWT_SECRET` (a strong random string)
+   - `GEMINI_KEY_1` (from Google AI Studio; add `GEMINI_KEY_2`, `_3`, ... for rotation)
+   - `JWT_SECRET` (a strong random string, at least 32 characters)
+   - `ALLOWED_ORIGINS` (your Vercel frontend URL)
 6. Under "Advanced" → "Disk", add:
    - Name: `resume-data`
    - Mount Path: `/app/data`
@@ -229,26 +245,34 @@ VITE_API_URL=https://your-render-backend-url.onrender.com
         │                        │                        │
         ▼                        ▼                        ▼
 ┌─────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│   Local Storage │    │   Database       │    │   LaTeX Engine   │
-│   (JWT Token)   │    │   (SQLite)       │◄──►│   (Tectonic)     │
+│   Local Storage │    │   Database       │    │   HTML → PDF      │
+│   (JWT Token)   │    │   (SQLite)       │◄──►│  (wkhtmltopdf)   │
 └─────────────────┘    └──────────────────┘    └──────────────────┘
 ```
 
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Login and receive JWT token
+- `POST /auth/register` - Register a new user (returns a JWT)
+- `POST /auth/login` - Login (OAuth2 form) and receive a JWT token
+- `GET /auth/me` - Get the current authenticated user's profile
 
 ### Resume Operations
-- `POST /resume/analyze` - Analyze resume against job description
-- `POST /resume/rewrite` - Rewrite resume using AI
-- `POST /resume/export/{session_id}` - Export resume as PDF
+- `POST /resume/analyze` - Analyze a resume against a job description (ATS scores + keywords)
+- `POST /resume/rewrite` - Rewrite the resume with AI and save a session
+- `POST /resume/extract-pdf` - Extract text from an uploaded PDF resume (multipart upload, 5 MB max)
+- `POST /resume/export/{session_id}` - Export a session's resume as PDF
+- `POST /resume/feedback` - Submit a 1–5 rating for a session (feeds the prompt learner)
 
 ### History
-- `GET /history` - Get all sessions for current user
-- `GET /history/{session_id}` - Get specific session details
-- `POST /history/{session_id}/export` - Re-export PDF for past session
+- `GET /history` - List the current user's sessions (paginated: `limit`, `offset`)
+- `GET /history/{session_id}` - Get full detail for a session
+- `GET /history/{session_id}/export` - Re-export a past session's PDF (`?save=true` to persist)
+- `DELETE /history/{session_id}` - Delete a session and its generated PDF
+
+### Status
+- `GET /health` - Public health check (DB + Gemini key availability)
+- `GET /status` - Detailed per-key status (requires `X-Admin-Token` header)
 
 ## How It Works
 
@@ -259,14 +283,16 @@ VITE_API_URL=https://your-render-backend-url.onrender.com
    - Resume is split into sections and scored based on keyword matches
    - Overall and section scores are returned (0-100 scale)
 3. **Resume Rewriting**:
-   - Original resume is parsed into structured JSON using Gemini AI
+   - Original resume is parsed into structured JSON using the configured LLM provider
+   - Facts are locked (URLs, dates, numbers, names) so they can't be altered or invented
    - Each section is rewritten to better match the job description while preserving facts
-   - Keywords from job description are naturally injected
+   - Keywords from the job description are naturally injected, with a retry pass if coverage is low
+   - Each rewrite is re-scored and rolled back to the original if it would lower the score
    - Rewritten resume is scored again for comparison
 4. **PDF Generation**:
-   - Rewritten resume JSON is passed to a Jinja2 LaTeX template
-   - All text is properly escaped for LaTeX
-   - Template is compiled to PDF using Tectonic
+   - Rewritten resume JSON is passed to a Jinja2 HTML template (`resume.html.j2`)
+   - URLs and contact links are normalized; text is autoescaped by Jinja2
+   - The rendered HTML is converted to PDF using wkhtmltopdf (via `pdfkit`)
    - PDF is returned for download
 5. **History Tracking**: All sessions are saved to the database for future reference
 
@@ -285,6 +311,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Google Gemini AI for powerful language model capabilities
-- Tectonic for modern LaTeX engine
+- wkhtmltopdf for HTML-to-PDF rendering
 - FastAPI for high-performance Python backend
 - React and Vite for modern frontend development
