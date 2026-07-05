@@ -33,9 +33,8 @@ resume-builder/
 │   ├── main.py                 # FastAPI application entry point
 │   ├── database.py             # Database configuration
 │   ├── requirements.txt        # Python dependencies
-│   ├── Dockerfile              # Docker configuration
-│   ├── .env                    # Environment variables
-│   ├── resume_rewriter.db      # SQLite database
+│   ├── Dockerfile              # Backend container image (build context: ./backend)
+│   ├── .env.example            # Example environment variables
 │   ├── models/                 # SQLAlchemy models
 │   │   ├── user.py             # User model
 │   │   └── session.py          # Session model
@@ -48,12 +47,13 @@ resume-builder/
 │   │   ├── ats_scorer.py       # ATS scoring logic
 │   │   ├── gemini.py           # Gemini AI integration
 │   │   ├── key_manager.py      # API key management
-│   │   ├── latex_escape.py     # LaTeX text escaping
+│   │   ├── latex_escape.py     # Text escaping helpers
+│   │   ├── pattern_learner.py  # Learned rewrite patterns
 │   │   ├── pdf_extractor.py    # PDF text extraction
-│   │   └── pdf_generator.py    # PDF generation service
-│   └── templates/              # Jinja2 templates
-│       ├── resume.tex.j2       # LaTeX resume template
-│       └── warmup.tex          # LaTeX warmup file
+│   │   └── pdf_generator.py    # PDF generation (wkhtmltopdf via pdfkit)
+│   ├── templates/              # Jinja2 templates
+│   │   └── resume.html.j2      # HTML resume template
+│   └── tests/                  # Backend tests
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx             # Main React app with routing
@@ -72,12 +72,16 @@ resume-builder/
 │   │       ├── History.jsx     # Session history page
 │   │       ├── Login.jsx       # Login page
 │   │       └── Register.jsx    # Registration page
-│   ├── public/
-│   │   └── index.html          # HTML template
+│   ├── index.html              # Vite entry HTML
 │   ├── package.json            # Frontend dependencies
 │   ├── vite.config.js          # Vite configuration
 │   ├── vercel.json             # Vercel deployment config
-│   └── .env                    # Frontend environment variables
+│   └── .env.example            # Example frontend environment variables
+├── docs/
+│   └── architecture.md         # Architecture notes
+├── scripts/
+│   ├── dev/                    # Dev helpers (start.bat, seed/inspect DB, API checks)
+│   └── setup/                  # Environment setup (install_wk.py)
 └── README.md                   # This file
 ```
 

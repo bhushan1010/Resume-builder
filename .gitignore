@@ -1,17 +1,27 @@
-backend/.env
+# ----- Secrets / env -----
 .env
-/backend/models/__pycache__
-/backend/__pycache__
-/frontend/node_modules
-/backend/services/__pycache__
-/backend/routes/__pycache__
-/backend/outputs/*.pdf
+backend/.env
+
+# ----- Python -----
+__pycache__/
+*.pyc
+
+# ----- Node / frontend -----
+frontend/node_modules/
+node_modules/
+frontend/dist/
+
+# ----- Runtime / build artifacts -----
+*.db
+*.db-shm
+*.db-wal
+*.pdf
+backend/trace.json
 patterns_data.json
+backend/outputs/*.pdf
+
+# ----- Tooling / vendored binaries -----
+/.agents
 /graphify-out
-/backend/bin
 /wkhtmltox
-/.agents
-/.agents
-/.agents
-/backend/tests
-/.agents
+/backend/bin
